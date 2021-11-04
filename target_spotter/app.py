@@ -15,6 +15,15 @@ EXAMPLE_FILES = defaults.EXAMPLE_FILES
 N_JOBS = 5
 
 ##### FUNCTIONS #####
+def make_download_link(label, source_filename, downloaded_filename):
+    with open(source_filename, "rb") as f:
+        bytes = f.read()
+        b64 = base64.b64encode(bytes).decode()
+        download_link = f"<a href='data:file/zip;base64,{b64}' download='{downloaded_filename}'> {label} </a>"
+
+    return download_link
+
+
 def make_sidebar():
 
     st.sidebar.title("Target Spotter")
@@ -59,6 +68,18 @@ Please, report any issues that you experience through this repository's ["Issues
         st.markdown(
             "Splicing dependencies are calculated from mRNA and splicing profiles of cancer samples"
         )
+    with st.sidebar.expander("How should I format my inputs?", expanded=False):
+        download_link = "https://drive.google.com/uc?export=download&id=1kHOnt5aDKcxHSuq6bZji9FrH0aQInooi"
+        st.markdown(
+            """
+        To estimate splicing dependencies, `target_spotter` requires two input tables:
+        - splicing: PSI profiles of your samples. The first column must contain the splicing events identifiers of [`VastDB`](https://vastdb.crg.eu/wiki/Main_Page) for the Hs2 event annotation (e.g. HsaEX0066564).
+        - gene expression: mRNA levels profiles of your samples. The first column must contain the ENSEMBL gene identifiers (e.g. ENSG00000141510)
+        
+        In case you'd like to see how sample data tables look like, click [here](%s) to download them.
+        """
+            % download_link
+        )
 
 
 def select_options():
@@ -86,23 +107,25 @@ def select_options():
             it is only stored temporarily in RAM to perform the calculations.
             """
         )
-    with st.expander("Use a sample dataset", expanded=False):
-        sample_dataset = st.selectbox("", ["None", "CCLE"])
-
-    if sample_dataset != "None":
-        uploaded_splicing_file = EXAMPLE_FILES[sample_dataset]["splicing"]
-        uploaded_genexpr_file = EXAMPLE_FILES[sample_dataset]["genexpr"]
 
     # parameters
     with st.expander("Set parameters", expanded=True):
         genexpr_units = st.selectbox(
-            "Are you providing gene expression **counts** or **TPM**?",
+            "Gene expression units:",
             ["TPM", "Counts"],
         )
         if genexpr_units == "TPM":
             normalize_counts = False
         elif genexpr_units == "Counts":
             normalize_counts = True
+
+    # sample dataset
+    with st.expander("Use a sample dataset", expanded=False):
+        sample_dataset = st.selectbox("", ["None", "CCLE"])
+
+    if sample_dataset != "None":
+        uploaded_splicing_file = EXAMPLE_FILES[sample_dataset]["splicing"]
+        uploaded_genexpr_file = EXAMPLE_FILES[sample_dataset]["genexpr"]
 
     # prepare outputs
     files = {"splicing": uploaded_splicing_file, "genexpr": uploaded_genexpr_file}
@@ -152,10 +175,11 @@ def save_outputs(predictor, estimator):
     to_download = output_dir + ".zip"
     now = datetime.now().strftime("%Y%m%d-%H%M%S")
     filename = "splicing_dependency-%s.zip" % now
-    with open(to_download, "rb") as f:
-        bytes = f.read()
-        b64 = base64.b64encode(bytes).decode()
-        download_link = f"<a href='data:file/zip;base64,{b64}' download='{filename}'> Download Splicing Dependency </a>"
+    download_link = make_download_link(
+        "Download Splicing Dependency",
+        source_filename=to_download,
+        downloaded_filename=filename,
+    )
     return download_link
 
 

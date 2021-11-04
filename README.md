@@ -64,10 +64,10 @@ spldep_medians = estimator.predict(splicing, genexpr)
 spldep_medians
 ```
 
-### within the app
+### through the app
 ```shell
 # start the app and follow instructions
-streamlit run app.py
+target_spotter app
 ```
 
 ## Maintenance

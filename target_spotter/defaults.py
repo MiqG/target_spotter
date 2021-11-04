@@ -29,6 +29,7 @@ LOGO_FILE = os.path.join(ROOT,"images","logo.png")
 EXAMPLE_FILES = {
     'CCLE':{
         'splicing': os.path.join(EXAMPLES_DIR,"CCLE","splicing_EX.tsv.gz"),
-        'genexpr': os.path.join(EXAMPLES_DIR,"CCLE","genexpr.tsv.gz")
+        'genexpr': os.path.join(EXAMPLES_DIR,"CCLE","genexpr.tsv.gz"),
+        'zip': os.path.join(EXAMPLES_DIR,"CCLE","sampledata.zip")
     }
 }
