@@ -5,6 +5,7 @@ DATA_DIR = os.path.join(ROOT, "data")
 PREP_DIR = os.path.join(DATA_DIR, "prep")
 REFERENCES_DIR = os.path.join(DATA_DIR, "references")
 FITTED_DIR = os.path.join(DATA_DIR, "fitted")
+EXAMPLES_DIR = os.path.join(DATA_DIR, "examples")
 RESULTS_DIR = "results"
 
 # references
@@ -17,3 +18,17 @@ COEFS_SPLICING_FILE = os.path.join(FITTED_DIR, "coefs_event.pickle.gz")
 COEFS_GENEXPR_FILE = os.path.join(FITTED_DIR, "coefs_gene.pickle.gz")
 COEFS_INTERACTION_FILE = os.path.join(FITTED_DIR, "coefs_interaction.pickle.gz")
 COEFS_INTERCEPT_FILE = os.path.join(FITTED_DIR, "coefs_intercept.pickle.gz")
+
+# app
+APP_SCRIPT = os.path.join(ROOT,"target_spotter","app.py")
+
+# images
+LOGO_FILE = os.path.join(ROOT,"images","logo.png")
+
+# example datasets
+EXAMPLE_FILES = {
+    'CCLE':{
+        'splicing': os.path.join(EXAMPLES_DIR,"CCLE","splicing_EX.tsv.gz"),
+        'genexpr': os.path.join(EXAMPLES_DIR,"CCLE","genexpr.tsv.gz")
+    }
+}

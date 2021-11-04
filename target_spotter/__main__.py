@@ -11,7 +11,7 @@ import gc
 import defaults
 from SplicingDependency import SplicingDependency
 
-
+APP_SCRIPT = defaults.APP_SCRIPT
 MAPPING_FILE = defaults.MAPPING_FILE
 FITTED_DIR = defaults.FITTED_DIR
 
@@ -202,7 +202,7 @@ class predict:
     def save(self, estimator):
         splicing_dependency = estimator.splicing_dependency_
 
-        os.makedirs(self.output_dir)
+        os.makedirs(self.output_dir, exist_ok=True)
 
         splicing_dependency["mean"].to_csv(
             os.path.join(self.output_dir, "mean.tsv.gz"), **SAVE_PARAMS
@@ -268,7 +268,10 @@ def parse_args():
     pred_parser.add_argument("--output_dir", type=str, default="splicing_dependency")
     pred_parser.add_argument("--normalize_counts", type=bool, default=False)
     pred_parser.add_argument("--n_jobs", type=int, default=1)
-
+    
+    # target_spotter app
+    app_parser = subparser.add_parser("app", help="estimate splicing dependency through a web app.")
+    
     # get arguments
     args = parser.parse_args()
     return args
@@ -302,10 +305,9 @@ def main():
             normalize_counts = args.normalize_counts,
             n_jobs = args.n_jobs
         ).run()
-
-    # fit
-    # fit(**args["cmd"]).run()
-
+    
+    elif args.cmd == "app":
+        os.system('streamlit run %s' % APP_SCRIPT)
 
 ##### SCRIPT #####
 if __name__ == "__main__":

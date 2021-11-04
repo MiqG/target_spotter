@@ -23,9 +23,11 @@ GENEXPR_FILE=$ROOT'/data/prep/genexpr_tpm/CCLE.tsv.gz'
 #         --n_iterations=2
 
 # test prediction of splicing dependencies
-python $ROOT/target_spotter predict \
-        --splicing_file=$SPLICING_FILE \
-        --genexpr_file=$GENEXPR_FILE \
-        --n_jobs=10
+# python $ROOT/target_spotter predict \
+#         --splicing_file=$SPLICING_FILE \
+#         --genexpr_file=$GENEXPR_FILE \
+#         --n_jobs=10
+
+python $ROOT/target_spotter app
 
 echo "Finished maintenance!"
