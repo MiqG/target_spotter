@@ -10,8 +10,6 @@
 #
 
 import os
-import argparse
-import gc
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
@@ -22,8 +20,9 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 
 
-# variables
-RANDOM_SEED = 1234
+# default variables
+# (Not to use random seed) RANDOM_SEED = 1234
+METHOD = "OLS"
 TEST_SIZE = 0.15
 SAVE_PARAMS = {"sep":"\t", "compression":"gzip", "index":False}
 
@@ -53,9 +52,92 @@ def get_summary_stats(df, col_oi):
     return summary_stats
 
 
-def fit_olsmodel(y, X, n_iterations):
-    # np.random.seed(RANDOM_SEED) Doesn't work
+def fit_limixmodel(y, X, n_iterations, sigma):
+    event, gene = X.columns[:2]
+
+    summaries = []
+    for i in range(n_iterations):
+        # split data
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SIZE)
+
+        # fit linear model to training data
+        model = sm.OLS(y_train, X_train).fit()
+
+        # log-likelihood test
+        model_null = sm.OLS(y_train, X_train[[gene, "intercept"]]).fit()
+        lr_stat, lr_pvalue, lr_df = model.compare_lr_test(model_null)
+
+        # score using test data
+        prediction = model.predict(X_test)
+        pearson_coef, pearson_pvalue = stats.pearsonr(prediction, y_test)
+        spearman_coef, spearman_pvalue = stats.spearmanr(prediction, y_test)
+
+        # prepare output
+        summary_it = {
+            "iteration": i,
+            "event_coefficient": model.params[event],
+            "event_stderr": model.bse[event],
+            "event_zscore": model.params[event] / model.bse[event],
+            "event_pvalue": model.pvalues[event],
+            "gene_coefficient": model.params[gene],
+            "gene_stderr": model.bse[gene],
+            "gene_zscore": model.params[gene] / model.bse[gene],
+            "gene_pvalue": model.pvalues[gene],
+            "interaction_coefficient": model.params["interaction"],
+            "interaction_stderr": model.bse["interaction"],
+            "interaction_zscore": model.params["interaction"]
+            / model.bse["interaction"],
+            "interaction_pvalue": model.pvalues["interaction"],
+            "intercept_coefficient": model.params["intercept"],
+            "intercept_stderr": model.bse["intercept"],
+            "intercept_zscore": model.params["intercept"] / model.bse["intercept"],
+            "intercept_pvalue": model.pvalues["intercept"],
+            "n_obs": model.nobs,
+            "rsquared": model.rsquared,
+            "pearson_correlation": pearson_coef,
+            "pearson_pvalue": pearson_pvalue,
+            "spearman_correlation": spearman_coef,
+            "spearman_pvalue": spearman_pvalue,
+            "lr_stat": lr_stat,
+            "lr_pvalue": lr_pvalue,
+            "lr_df": lr_df,
+        }
+        summaries.append(summary_it)
+        
+    summaries = pd.DataFrame(summaries)
+
+    # compute average likelihood-ratio test
+    avg_lr_stat = np.mean(summaries["lr_stat"])
+    lr_pvalue = stats.chi2.sf(avg_lr_stat, lr_df)
+
+    # prepare output
+    ## summary
+    summary = {"EVENT": event, "ENSEMBL": gene, "GENE": y.name, "n_obs": model.nobs}
+    summary.update(get_summary_stats(summaries, "event_coefficient"))
+    summary.update(get_summary_stats(summaries, "gene_coefficient"))
+    summary.update(get_summary_stats(summaries, "interaction_coefficient"))
+    summary.update(get_summary_stats(summaries, "intercept_coefficient"))
+    summary.update(get_summary_stats(summaries, "rsquared"))
+    summary.update(get_summary_stats(summaries, "pearson_correlation"))
+    summary.update(get_summary_stats(summaries, "spearman_correlation"))
+    summary.update(get_summary_stats(summaries, "lr_stat"))
+    summary.update(
+        {"lr_df": lr_df, "lr_pvalue": lr_pvalue,}
+    )
+    summary = pd.Series(summary)
+    ## empirical distributions of coefficients
+    coefs = {
+        "EVENT": summary["EVENT"],
+        "GENE": summary["GENE"],
+        "ENSEMBL": summary["ENSEMBL"],
+        "event": summaries["event_coefficient"].values,
+        "gene": summaries["gene_coefficient"].values,
+        "interaction": summaries["interaction_coefficient"].values,
+        "intercept": summaries["intercept_coefficient"].values,
+    }    
     
+
+def fit_olsmodel(y, X, n_iterations):
     event, gene = X.columns[:2]
 
     summaries = []
@@ -256,14 +338,14 @@ def get_coefs(res, coef_oi, size):
     return coefs
 
 
-def fit_models(gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs):
+def fit_models(gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs, method=METHOD):
     results = Parallel(n_jobs=n_jobs)(
         delayed(fit_model)(
             splicing.loc[event],
             genexpr.loc[ensembl],
             gene_dependency.loc[gene],
             n_iterations,
-            method="OLS",
+            method=method,
         )
         for event, ensembl, gene in tqdm(mapping.values)
     )

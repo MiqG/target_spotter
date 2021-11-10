@@ -53,6 +53,7 @@ target_spotter predict --splicing_file='splicing.tsv.gz' \
                        --output_dir='results'
 ```
 ### within a script
+#### Inference of splicing dependencies
 ```python
 import target_spotter as ts
 from examples import make_sampledata
@@ -62,6 +63,18 @@ splicing, genexpr = make_sampledata(n_samples=10)
 estimator = ts.SplicingDependency() # already fitted
 spldep_medians = estimator.predict(splicing, genexpr)
 spldep_medians
+```
+#### One-sample differential splicing analysis
+```python
+import target_spotter as ts
+from examples import make_sampledata
+
+splicing, genexpr = make_sampledata(n_samples=10)
+
+estimator = ts.OneSampleDiff(cancer_type='KIRC') # already fitted
+# get differentially spliced exons with respect to solid tissue normal samples
+result = estimator.predict(splicing, ref_condition='stn')
+
 ```
 
 ### through the app

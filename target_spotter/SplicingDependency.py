@@ -155,6 +155,11 @@ class SplicingDependency:
         ## save inputs as attributes
         self.splicing_ = splicing
         self.genexpr_ = genexpr
+        self.ccle_stats_ = ccle_stats
+        self.coefs_splicing_ = coefs_splicing
+        self.coefs_genexpr_ = coefs_genexpr
+        self.coefs_interaction_ = coefs_interaction
+        self.coefs_intercept_ = coefs_intercept
 
         ## load defaults
         print("Loading defaults...")
