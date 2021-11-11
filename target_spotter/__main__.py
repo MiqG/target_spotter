@@ -7,16 +7,12 @@
 import pandas as pd
 import os
 import argparse
-import gc
-import defaults
-from SplicingDependency import SplicingDependency
+import defaults, SplicingDependency, OneSampleDiff
 
 APP_SCRIPT = defaults.APP_SCRIPT
 MAPPING_FILE = defaults.MAPPING_FILE
-FITTED_DIR = defaults.FITTED_DIR
-
-SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
-
+FITTED_SPLDEP_DIR = defaults.FITTED_SPLDEP_DIR
+FITTED_ONEDIFF_DIR = defaults.FITTED_ONEDIFF_DIR
 
 """
 Development
@@ -42,222 +38,28 @@ args = {
 # predict
 
 """
-
-
-class fit:
-    def __init__(
-        self,
-        gene_dependency_file,
-        splicing_file,
-        genexpr_file,
-        mapping_file=MAPPING_FILE,
-        output_dir=FITTED_DIR,
-        normalize_counts=False,
-        n_iterations=100,
-        n_jobs=None,
-    ):
-
-        # inputs
-        self.gene_dependency_file = gene_dependency_file
-        self.splicing_file = splicing_file
-        self.genexpr_file = genexpr_file
-        self.mapping_file = mapping_file
-
-        # outputs
-        self.output_dir = output_dir
-
-        # parameters
-        self.normalize_counts = normalize_counts
-        self.n_iterations = n_iterations
-        self.n_jobs = n_jobs
-
-    def load_data(self):
-        gene_dependency = pd.read_table(self.gene_dependency_file, index_col=0)
-        splicing = pd.read_table(self.splicing_file, index_col=0)
-        genexpr = pd.read_table(self.genexpr_file, index_col=0)
-        mapping = pd.read_table(self.mapping_file).iloc[:5000]  ##
-
-        gene_annot = mapping[["ENSEMBL", "GENE"]].drop_duplicates().dropna()
-
-        # drop undetected & uninformative events
-        splicing = splicing.dropna(thresh=2)
-        splicing = splicing.loc[splicing.std(axis=1) != 0]
-
-        # subset
-        common_samples = (
-            set(gene_dependency.columns)
-            .intersection(splicing.columns)
-            .intersection(genexpr.columns)
-        )
-
-        common_genes = set(
-            gene_annot.loc[gene_annot["GENE"].isin(gene_dependency.index), "ENSEMBL"]
-        ).intersection(genexpr.index)
-
-        common_events = set(splicing.index).intersection(
-            mapping.loc[mapping["ENSEMBL"].isin(common_genes), "EVENT"]
-        )
-
-        splicing = splicing.loc[common_events, common_samples]
-        genexpr = genexpr.loc[common_genes, common_samples]
-        gene_dependency = gene_dependency.loc[
-            set(gene_annot.set_index("ENSEMBL").loc[common_genes, "GENE"]),
-            common_samples,
-        ]
-        mapping = mapping.loc[mapping["EVENT"].isin(common_events)]
-
-        gc.collect()
-
-        self.gene_dependency_ = gene_dependency
-        self.splicing_ = splicing
-        self.genexpr_ = genexpr
-        self.mapping_ = mapping
-
-    def save(self, estimator):
-        summaries = estimator.summaries_
-        coefs_event = estimator.coefs_event_
-        coefs_gene = estimator.coefs_gene_
-        coefs_interaction = estimator.coefs_interaction_
-        coefs_intercept = estimator.coefs_intercept_
-
-        os.makedirs(self.output_dir)
-
-        summaries.to_csv(
-            os.path.join(self.output_dir, "model_summaries.tsv.gz"), **SAVE_PARAMS
-        )
-        coefs_event.to_pickle(os.path.join(self.output_dir, "coefs_event.pickle.gz"))
-        coefs_gene.to_pickle(os.path.join(self.output_dir, "coefs_gene.pickle.gz"))
-        coefs_interaction.to_pickle(
-            os.path.join(self.output_dir, "coefs_interaction.pickle.gz")
-        )
-        coefs_intercept.to_pickle(
-            os.path.join(self.output_dir, "coefs_intercept.pickle.gz")
-        )
-
-    def run(self):
-        print("Loading data...")
-        self.load_data()
-
-        print("Fitting models...")
-        estimator = SplicingDependency(
-            normalize_counts=self.normalize_counts,
-            n_iterations=self.n_iterations,
-            n_jobs=self.n_jobs,
-        )
-        estimator.fit(
-            self.gene_dependency_, self.splicing_, self.genexpr_, self.mapping_
-        )
-
-        print("Saving results to %s..." % self.output_dir)
-        self.save(estimator)
-
-
-class predict:
-    def __init__(
-        self,
-        splicing_file,
-        genexpr_file,
-        ccle_stats_file=None,
-        coefs_splicing_file=None,
-        coefs_genexpr_file=None,
-        coefs_interaction_file=None,
-        coefs_intercept_file=None,
-        output_dir="splicing_dependency",
-        normalize_counts=False,
-        n_iterations=100,
-        n_jobs=None,
-    ):
-
-        # inputs
-        self.splicing_file = splicing_file
-        self.genexpr_file = genexpr_file
-        self.ccle_stats_file = ccle_stats_file
-        self.coefs_splicing_file = coefs_splicing_file
-        self.coefs_genexpr_file = coefs_genexpr_file
-        self.coefs_interaction_file = coefs_interaction_file
-        self.coefs_intercept_file = coefs_intercept_file
-
-        # outputs
-        self.output_dir = output_dir
-
-        # parameters
-        self.normalize_counts = normalize_counts
-        self.n_iterations = n_iterations
-        self.n_jobs = n_jobs
-
-    def load_data(self):
-        splicing = pd.read_table(self.splicing_file, index_col=0)
-        genexpr = pd.read_table(self.genexpr_file, index_col=0)
-
-        # subset samples
-        common_samples = set(splicing.columns).intersection(genexpr.columns)
-        
-        # TODO load stats and coefs if not None
-        
-        gc.collect()
-
-        self.splicing_ = splicing
-        self.genexpr_ = genexpr
-
-    def save(self, estimator):
-        splicing_dependency = estimator.splicing_dependency_
-
-        os.makedirs(self.output_dir, exist_ok=True)
-
-        splicing_dependency["mean"].to_csv(
-            os.path.join(self.output_dir, "mean.tsv.gz"), **SAVE_PARAMS
-        )
-        splicing_dependency["median"].to_csv(
-            os.path.join(self.output_dir, "median.tsv.gz"), **SAVE_PARAMS
-        )
-        splicing_dependency["std"].to_csv(
-            os.path.join(self.output_dir, "std.tsv.gz"), **SAVE_PARAMS
-        )
-
-    def run(self):
-        print("Loading data...")
-        self.load_data()
-
-        print("Estimating splicing dependencies...")
-        estimator = SplicingDependency(
-            normalize_counts=self.normalize_counts,
-            n_iterations=self.n_iterations,
-            n_jobs=self.n_jobs,
-        )
-        _ = estimator.predict(
-            self.splicing_,
-            self.genexpr_,
-#             self.ccle_stats_,
-#             self.coefs_splicing_,
-#             self.coefs_genexpr_,
-#             self.coefs_interaction_,
-#             self.coefs_intercept_,
-        )
-
-        print("Saving results to %s..." % self.output_dir)
-        self.save(estimator)
-
-
+##### FUNCTIONS #####
 def parse_args():
     parser = argparse.ArgumentParser(
         prog="target_spotter",
         description="Systematic prioritization of splicing targets to treat cancer.",
     )
     subparser = parser.add_subparsers(help="sub-commands", dest="cmd")
-
-    # target_spotter fit
-    fit_parser = subparser.add_parser("fit", help="model gene dependency.")
+    
+    # SplicingDependency
+    ## target_spotter spldep_fit
+    fit_parser = subparser.add_parser("spldep_fit", help="fit models of splicing dependency.")
     fit_parser.add_argument("--gene_dependency_file", type=str, required=True)
     fit_parser.add_argument("--splicing_file", type=str, required=True)
     fit_parser.add_argument("--genexpr_file", type=str, required=True)
     fit_parser.add_argument("--mapping_file", type=str, default=MAPPING_FILE)
-    fit_parser.add_argument("--output_dir", type=str, default=FITTED_DIR)
+    fit_parser.add_argument("--output_dir", type=str, default=FITTED_SPLDEP_DIR)
     fit_parser.add_argument("--normalize_counts", type=bool, default=False)
     fit_parser.add_argument("--n_iterations", type=int, default=100)
     fit_parser.add_argument("--n_jobs", type=int, default=1)
 
-    # target_spotter predict
-    pred_parser = subparser.add_parser("predict", help="estimate splicing dependency.")
+    ## target_spotter spldep_predict
+    pred_parser = subparser.add_parser("spldep_predict", help="estimate splicing dependency.")
     pred_parser.add_argument("--splicing_file", type=str, required=True)
     pred_parser.add_argument("--genexpr_file", type=str, required=True)
     pred_parser.add_argument("--ccle_stats_file", type=str, default=None)
@@ -269,8 +71,29 @@ def parse_args():
     pred_parser.add_argument("--normalize_counts", type=bool, default=False)
     pred_parser.add_argument("--n_jobs", type=int, default=1)
     
+    # OneSampleDiff
+    ## target_spotter onediff_fit
+    fit_parser = subparser.add_parser("onediff_fit", help="fit models of splicing dependency.")
+    fit_parser.add_argument("--data_file", type=str, required=True)
+    fit_parser.add_argument("--metadata_file", type=str, required=True)
+    fit_parser.add_argument("--sample_col", type=str, required=True)
+    fit_parser.add_argument("--comparison_col", type=str, required=True)
+    fit_parser.add_argument("--condition_oi", type=str, required=True)
+    fit_parser.add_argument("--condition_ref", type=str, required=True)
+    fit_parser.add_argument("--output_dir", type=str, default=FITTED_ONEDIFF_DIR)
+    fit_parser.add_argument("--n_jobs", type=int, default=1)
+
+    ## target_spotter onediff_predict
+    pred_parser = subparser.add_parser("onediff_predict", help="estimate splicing dependency.")
+    pred_parser.add_argument("--data_file", type=str, required=True)
+    pred_parser.add_argument("--median_refs_file", type=str, default=None)
+    pred_parser.add_argument("--population_deltas_file", type=str, default=None)
+    pred_parser.add_argument("--output_dir", type=str, default="one_sample_diff_analysis")
+    pred_parser.add_argument("--cancer_type", type=str, default=None)
+    pred_parser.add_argument("--n_jobs", type=int, default=1)    
+    
     # target_spotter app
-    app_parser = subparser.add_parser("app", help="estimate splicing dependency through a web app.")
+    app_parser = subparser.add_parser("app", help="Explores splicing dependency through a web app.")
     
     # get arguments
     args = parser.parse_args()
@@ -279,9 +102,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-
-    if args.cmd == "fit":
-        fit(
+    
+    # SplicingDependency
+    if args.cmd == "spldep_fit":
+        SplicingDependency.FitFromFiles(
             gene_dependency_file=args.gene_dependency_file,
             splicing_file=args.splicing_file,
             genexpr_file=args.genexpr_file,
@@ -289,11 +113,11 @@ def main():
             output_dir=args.output_dir,
             normalize_counts=args.normalize_counts,
             n_iterations=args.n_iterations,
-            n_jobs=args.n_jobs,
+            n_jobs=args.n_jobs
         ).run()
 
-    elif args.cmd == "predict":
-        predict(
+    elif args.cmd == "spldep_predict":
+        SplicingDependency.PredictFromFiles(
             splicing_file = args.splicing_file,
             genexpr_file = args.genexpr_file,
             ccle_stats_file = args.ccle_stats_file,
@@ -303,6 +127,30 @@ def main():
             coefs_intercept_file = args.coefs_intercept_file,
             output_dir = args.output_dir,
             normalize_counts = args.normalize_counts,
+            n_jobs = args.n_jobs
+        ).run()
+    
+    elif args.cmd == "onediff_fit":
+        OneSampleDiff.FitFromFiles(
+            data_file = args.data_file,
+            metadata_file = args.metadata_file,
+            sample_col = args.sample_col,
+            comparison_col = args.comparison_col,
+            condition_oi = args.condition_oi,
+            condition_ref = args.condition_ref,
+            output_dir = args.output_dir,
+            n_jobs = args.n_jobs
+        ).run()
+        
+    elif args.cmd == "onediff_predict":
+        # load fitted defaults
+        
+        OneSampleDiff.PredictFromFiles(
+            data_file = args.data_file,
+            median_refs_file = args.median_refs_file,
+            population_deltas_file = args.population_deltas_file,
+            output_dir = args.output_dir,
+            cancer_type = args.cancer_type,
             n_jobs = args.n_jobs
         ).run()
     

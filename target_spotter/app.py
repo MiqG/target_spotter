@@ -1,7 +1,6 @@
 import pandas as pd
-from target_spotter.__main__ import predict
 import defaults
-from SplicingDependency import SplicingDependency
+from SplicingDependency import SplicingDependency, PredictFromFile
 import utils
 import streamlit as st
 import tempfile
@@ -137,7 +136,7 @@ def select_options():
 
 def upload_data(files, params):
     dirpath = os.path.join(tempfile.mkdtemp(), "splicing_dependency")
-    predictor = predict(
+    predictor = PredictFromFile(
         splicing_file=files["splicing"],
         genexpr_file=files["genexpr"],
         output_dir=dirpath,

@@ -23,11 +23,34 @@ GENEXPR_FILE=$ROOT'/data/prep/genexpr_tpm/CCLE.tsv.gz'
 #         --n_iterations=2
 
 # test prediction of splicing dependencies
-# python $ROOT/target_spotter predict \
+# python $ROOT/target_spotter spldep_predict \
 #         --splicing_file=$SPLICING_FILE \
 #         --genexpr_file=$GENEXPR_FILE \
 #         --n_jobs=10
 
-python $ROOT/target_spotter app
+# python $ROOT/target_spotter app
+
+# one-sample differential analysis
+TCGA_PSI=$ROOT'/data/prep/event_psi/KICH.tsv'
+TCGA_METADATA=$ROOT'/data/prep/metadata/KICH.tsv'
+OUTPUT_DIR=$ROOT'/data/fitted/onesample_diff/TCGA/KICH'
+
+# ## for each exon, create distribution of delta PSIs
+# python $ROOT/target_spotter onediff_fit \
+#             --data_file=$TCGA_PSI \
+#             --metadata_file=$TCGA_METADATA \
+#             --sample_col="sampleID" \
+#             --comparison_col="sample_type" \
+#             --condition_oi="Primary Tumor" \
+#             --condition_ref="Solid Tissue Normal" \
+#             --output_dir=$OUTPUT_DIR \
+#             --n_jobs=10
+            
+# ## for each exon in each sample, measure the delta w.r.t. a reference population
+# ## and get a p-value for this delta
+python $ROOT/target_spotter onediff_predict \
+            --data_file=$TCGA_PSI \
+            --cancer_type="KICH" \
+            --n_jobs=10
 
 echo "Finished maintenance!"
