@@ -37,8 +37,8 @@ class OneSampleDiff:
         For every row in data, we return the vector of differences between x_oi and the median(x_ref).
         """
         x_ref = x_ref[~np.isnan(x_ref)]
-        nobs = len(x_ref)
-        if nobs > 0:
+        n_obs = len(x_ref)
+        if n_obs > 0:
             median_ref = np.median(x_ref)
         else:
             median_ref = np.nan
@@ -47,7 +47,7 @@ class OneSampleDiff:
         out = {
             "index": x_oi.name,
             "median_ref": median_ref,
-            "nobs": nobs,
+            "n_obs": n_obs,
             "deltas": deltas,
         }
         return out
@@ -67,9 +67,9 @@ class OneSampleDiff:
         for res in results:
             index = res["index"]
             median_ref = res["median_ref"]
-            nobs = res["nobs"]
+            n_obs = res["n_obs"]
             deltas = res["deltas"]
-            median_refs.append({"index": index, "median_ref": median_ref, "nobs": nobs})
+            median_refs.append({"index": index, "median_ref": median_ref, "n_obs": n_obs})
             population_deltas.append({index: deltas})
 
             del index, median_ref, deltas
@@ -171,8 +171,7 @@ class FitFromFiles:
 
     def load_data(self):
         # read
-        data = pd.read_table(self.data_file, index_col=0).iloc[:500]
-        print("DEV")
+        data = pd.read_table(self.data_file, index_col=0).iloc[:500]; print("DEV")
         metadata = pd.read_table(self.metadata_file)
 
         # subset
