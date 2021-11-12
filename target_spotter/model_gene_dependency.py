@@ -193,7 +193,8 @@ def fit_olsmodel(y, X, n_iterations):
 
     # compute average likelihood-ratio test
     avg_lr_stat = np.mean(summaries["lr_stat"])
-    lr_pvalue = stats.chi2.sf(avg_lr_stat, lr_df)
+    avg_lr_df = np.round(summaries["lr_df"].mean())
+    lr_pvalue = stats.chi2.sf(avg_lr_stat, avg_lr_df)
 
     # prepare output
     ## summary
@@ -244,7 +245,6 @@ def fit_model(x_splicing, x_genexpr, y_gene_dependency, n_iterations, method):
 
     try:
         # standardize features
-        X.values[:, :] = StandardScaler().fit_transform(X)
         X["interaction"] = X[x_splicing.name] * X[x_genexpr.name]
         X["intercept"] = 1.0
 

@@ -259,11 +259,23 @@ class FitFromFiles:
         mapping = mapping.loc[mapping["EVENT"].isin(common_events)]
 
         gc.collect()
+        
+        # standardize splicing and gene expression
+        splicing_mean = splicing.mean(axis=1).values.reshape(-1, 1)
+        splicing_std = splicing.std(axis=1).values.reshape(-1, 1)
+        splicing = (splicing - splicing_mean) / splicing_std
+
+        genexpr_mean = genexpr.mean(axis=1).values.reshape(-1, 1)
+        genexpr_std = genexpr.std(axis=1).values.reshape(-1, 1)
+        genexpr = (genexpr - genexpr_mean) / genexpr_std
+
+        gc.collect()
 
         self.gene_dependency_ = gene_dependency
         self.splicing_ = splicing
         self.genexpr_ = genexpr
         self.mapping_ = mapping
+        
 
     def save(self, estimator):
         summaries = estimator.summaries_
