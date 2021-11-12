@@ -14,30 +14,6 @@ MAPPING_FILE = defaults.MAPPING_FILE
 FITTED_SPLDEP_DIR = defaults.FITTED_SPLDEP_DIR
 FITTED_ONEDIFF_DIR = defaults.FITTED_ONEDIFF_DIR
 
-"""
-Development
------------
-# fit
-ROOT = '/home/miquel/repositories/target_spotter'
-PREP_DIR = os.path.join(ROOT,'data','prep')
-splicing_file = os.path.join(PREP_DIR,'event_psi','CCLE-EX.tsv.gz')
-genexpr_file = os.path.join(PREP_DIR,'genexpr_tpm','CCLE.tsv.gz')
-gene_dependency_file = os.path.join(PREP_DIR,'demeter2','CCLE.tsv.gz')
-normalize_counts=False
-n_jobs=10
-n_iterations=2
-args = {
-    "cmd":{
-        "gene_dependency_file": gene_dependency_file,
-        "splicing_file": splicing_file,
-        "genexpr_file": genexpr_file,
-        "output_dir": output_dir
-    }
-}
-
-# predict
-
-"""
 ##### FUNCTIONS #####
 def parse_args():
     parser = argparse.ArgumentParser(

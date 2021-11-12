@@ -16,8 +16,8 @@ GENE_LENGTHS_FILE = os.path.join(REFERENCES_DIR, "gene_lengths.tsv")
 CCLE_STATS_FILE = os.path.join(REFERENCES_DIR, "ccle_stats.tsv.gz")
 
 # coefficients
-COEFS_SPLICING_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_event.pickle.gz")
-COEFS_GENEXPR_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_gene.pickle.gz")
+COEFS_SPLICING_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_splicing.pickle.gz")
+COEFS_GENEXPR_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_genexpr.pickle.gz")
 COEFS_INTERACTION_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_interaction.pickle.gz")
 COEFS_INTERCEPT_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_intercept.pickle.gz")
 

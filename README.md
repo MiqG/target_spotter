@@ -48,9 +48,18 @@ pip install -e .
 ### from the shell
 ```shell
 # predict splicing dependency
-target_spotter predict --splicing_file='splicing.tsv.gz' \
-                       --genexpr_file='genexpr.tsv.gz' \
-                       --output_dir='results'
+target_spotter spldp_predict \
+            --splicing_file='splicing.tsv.gz' \
+            --genexpr_file='genexpr.tsv.gz' \
+            --output_dir='results' \
+            --n_jobs=4
+
+# one-sample differential splicing analysis
+target_spotter onediff_predict \
+            --data_file='splicing.tsv.gz' \
+            --cancer_type='KICH' \
+            --output_dir='results' \
+            --n_jobs=4
 ```
 ### within a script
 #### Inference of splicing dependencies

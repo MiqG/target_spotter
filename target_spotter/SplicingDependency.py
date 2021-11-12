@@ -49,8 +49,8 @@ class SplicingDependency:
         # run linear models
         (
             summaries,
-            coefs_event,
-            coefs_gene,
+            coefs_splicing,
+            coefs_genexpr,
             coefs_interaction,
             coefs_intercept,
         ) = fit_models(
@@ -58,8 +58,8 @@ class SplicingDependency:
         )
 
         self.summaries_ = summaries
-        self.coefs_event_ = coefs_event
-        self.coefs_gene_ = coefs_gene
+        self.coefs_splicing_ = coefs_splicing
+        self.coefs_genexpr_ = coefs_genexpr
         self.coefs_interaction_ = coefs_interaction
         self.coefs_intercept_ = coefs_intercept
 
@@ -176,7 +176,7 @@ class SplicingDependency:
             self.coefs_interaction_ = pd.read_pickle(COEFS_INTERACTION_FILE)
         if coefs_intercept is None:
             self.coefs_intercept_ = pd.read_pickle(COEFS_INTERCEPT_FILE)
-
+        
         ## preprocessing inputs for prediction
         print("Preprocessing inputs...")
         self._preprocess()
@@ -227,7 +227,7 @@ class FitFromFiles:
         gene_dependency = pd.read_table(self.gene_dependency_file, index_col=0)
         splicing = pd.read_table(self.splicing_file, index_col=0)
         genexpr = pd.read_table(self.genexpr_file, index_col=0)
-        mapping = pd.read_table(self.mapping_file).iloc[:5000]; print("DEV")
+        mapping = pd.read_table(self.mapping_file)
 
         gene_annot = mapping[["ENSEMBL", "GENE"]].drop_duplicates().dropna()
 
@@ -267,8 +267,8 @@ class FitFromFiles:
 
     def save(self, estimator):
         summaries = estimator.summaries_
-        coefs_event = estimator.coefs_event_
-        coefs_gene = estimator.coefs_gene_
+        coefs_splicing = estimator.coefs_splicing_
+        coefs_genexpr = estimator.coefs_genexpr_
         coefs_interaction = estimator.coefs_interaction_
         coefs_intercept = estimator.coefs_intercept_
 
@@ -277,8 +277,8 @@ class FitFromFiles:
         summaries.to_csv(
             os.path.join(self.output_dir, "model_summaries.tsv.gz"), **SAVE_PARAMS
         )
-        coefs_event.to_pickle(os.path.join(self.output_dir, "coefs_event.pickle.gz"))
-        coefs_gene.to_pickle(os.path.join(self.output_dir, "coefs_gene.pickle.gz"))
+        coefs_splicing.to_pickle(os.path.join(self.output_dir, "coefs_splicing.pickle.gz"))
+        coefs_genexpr.to_pickle(os.path.join(self.output_dir, "coefs_genexpr.pickle.gz"))
         coefs_interaction.to_pickle(
             os.path.join(self.output_dir, "coefs_interaction.pickle.gz")
         )
@@ -344,13 +344,37 @@ class PredictFromFiles:
         # subset samples
         common_samples = set(splicing.columns).intersection(genexpr.columns)
         
-        # TODO load stats and coefs if not None
+        # load default files
+        if self.ccle_stats_file is None:
+            self.ccle_stats_file = CCLE_STATS_FILE
+        if self.coefs_splicing_file is None:
+            self.coefs_splicing_file = COEFS_SPLICING_FILE
+        if self.coefs_genexpr_file is None:
+            self.coefs_genexpr_file = COEFS_GENEXPR_FILE
+        if self.coefs_interaction_file is None:
+            self.coefs_interaction_file = COEFS_INTERACTION_FILE
+        if self.coefs_intercept_file is None:
+            self.coefs_intercept_file = COEFS_INTERCEPT_FILE
+        
+        # load coefficients
+        ccle_stats = pd.read_table(self.ccle_stats_file).set_index(["EVENT", "ENSEMBL"])
+        coefs_splicing = pd.read_pickle(self.coefs_splicing_file)
+        coefs_genexpr = pd.read_pickle(self.coefs_genexpr_file)
+        coefs_interaction = pd.read_pickle(self.coefs_interaction_file)
+        coefs_intercept = pd.read_pickle(self.coefs_intercept_file)
         
         gc.collect()
-
+    
+        # update attributes
         self.splicing_ = splicing
         self.genexpr_ = genexpr
+        self.ccle_stats_ = ccle_stats
+        self.coefs_splicing_ = coefs_splicing
+        self.coefs_genexpr_ = coefs_genexpr
+        self.coefs_interaction_ = coefs_interaction
+        self.coefs_intercept_ = coefs_intercept
 
+        
     def save(self, estimator):
         splicing_dependency = estimator.splicing_dependency_
 
@@ -379,11 +403,11 @@ class PredictFromFiles:
         _ = estimator.predict(
             self.splicing_,
             self.genexpr_,
-#             self.ccle_stats_,
-#             self.coefs_splicing_,
-#             self.coefs_genexpr_,
-#             self.coefs_interaction_,
-#             self.coefs_intercept_,
+            self.ccle_stats_,
+            self.coefs_splicing_,
+            self.coefs_genexpr_,
+            self.coefs_interaction_,
+            self.coefs_intercept_,
         )
 
         print("Saving results to %s ..." % self.output_dir)
