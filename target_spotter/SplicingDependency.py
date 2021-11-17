@@ -182,6 +182,7 @@ class SplicingDependency:
         self._preprocess()
 
         # estimate splicing dependency
+        print("Computing splicing dependencies...")
         splicing_dependency = utils.compute_splicing_dependency(
             self.prep_splicing_,
             self.prep_genexpr_,
@@ -356,7 +357,7 @@ class PredictFromFiles:
         # subset samples
         common_samples = set(splicing.columns).intersection(genexpr.columns)
         
-        # load default files
+        # take default files
         if self.ccle_stats_file is None:
             self.ccle_stats_file = CCLE_STATS_FILE
         if self.coefs_splicing_file is None:
@@ -392,13 +393,13 @@ class PredictFromFiles:
 
         os.makedirs(self.output_dir, exist_ok=True)
 
-        splicing_dependency["mean"].to_csv(
+        splicing_dependency["mean"].reset_index().to_csv(
             os.path.join(self.output_dir, "mean.tsv.gz"), **SAVE_PARAMS
         )
-        splicing_dependency["median"].to_csv(
+        splicing_dependency["median"].reset_index().to_csv(
             os.path.join(self.output_dir, "median.tsv.gz"), **SAVE_PARAMS
         )
-        splicing_dependency["std"].to_csv(
+        splicing_dependency["std"].reset_index().to_csv(
             os.path.join(self.output_dir, "std.tsv.gz"), **SAVE_PARAMS
         )
 
