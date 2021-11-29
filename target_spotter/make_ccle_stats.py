@@ -29,7 +29,7 @@ def load_data(splicing_file, genexpr_file, mapping_file):
     splicing = pd.read_table(splicing_file, index_col=0)
     genexpr = pd.read_table(genexpr_file, index_col=0)
     mapping = pd.read_table(mapping_file)
-    
+
     return splicing, genexpr, mapping
 
 
@@ -45,18 +45,28 @@ def get_summary_stats(df, label):
 
 
 def make_ccle_stats(splicing, genexpr, mapping):
-    splicing_stats = pd.DataFrame(get_summary_stats(splicing, 'event'))
-    genexpr_stats = pd.DataFrame(get_summary_stats(genexpr, 'gene'))
-    
-    ccle_stats = pd.merge(mapping, splicing_stats, how='left', left_on='EVENT', right_index=True)
-    ccle_stats = pd.merge(ccle_stats, genexpr_stats, how='left', left_on='ENSEMBL', right_index=True)
+    splicing_stats = pd.DataFrame(get_summary_stats(splicing, "event"))
+    genexpr_stats = pd.DataFrame(get_summary_stats(genexpr, "gene"))
+
+    # left join
+    ccle_stats = pd.merge(
+        mapping, splicing_stats, how="left", left_on="EVENT", right_index=True
+    )
+    ccle_stats = pd.merge(
+        ccle_stats, genexpr_stats, how="left", left_on="ENSEMBL", right_index=True
+    )
+
+    # subset
+    events_avail = list(splicing_stats.index)
+    to_keep = ccle_stats["EVENT"].isin(events_avail)
+    ccle_stats = ccle_stats.loc[to_keep].copy()
     
     return ccle_stats
-    
-    
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--splicing_file", type=str, required=True)
+    parser.add_argument("--splicing_files", type=str, required=True)
     parser.add_argument("--genexpr_file", type=str, required=True)
     parser.add_argument("--mapping_file", type=str, default=MAPPING_FILE)
     parser.add_argument("--output_dir", type=str, default=OUTPUT_DIR)
@@ -67,21 +77,27 @@ def parse_args():
 
 def main():
     args = parse_args()
-    splicing_file = args.splicing_file
+    splicing_files = args.splicing_files.split(",")
     genexpr_file = args.genexpr_file
     mapping_file = args.mapping_file
     output_dir = args.output_dir
-    
-    print("Loading data...")
-    splicing, genexpr, mapping = load_data(splicing_file, genexpr_file, mapping_file)
 
-    print("Computing CCLE statistics...")
-    ccle_stats = make_ccle_stats(splicing, genexpr, mapping)
+    ccle_stats = []
+    for splicing_file in splicing_files:
+        print("Loading data from %s..." % splicing_file)
+        splicing, genexpr, mapping = load_data(
+            splicing_file, genexpr_file, mapping_file
+        )
+
+        print("Computing CCLE statistics...")
+        ccle_stats_tmp = make_ccle_stats(splicing, genexpr, mapping)
+        ccle_stats.append(ccle_stats_tmp)
 
     print("Saving results...")
-    ccle_stats.to_csv(os.path.join(output_dir,'ccle_stats.tsv.gz'), **SAVE_PARAMS)
+    ccle_stats = pd.concat(ccle_stats)
+    ccle_stats.to_csv(os.path.join(output_dir, "ccle_stats.tsv.gz"), **SAVE_PARAMS)
 
-    
+
 ##### SCRIPT #####
 if __name__ == "__main__":
     main()
