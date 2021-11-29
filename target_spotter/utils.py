@@ -25,7 +25,7 @@ EXAMPLE_FILES = defaults.EXAMPLE_FILES
 
 def count_to_tpm(mrna_count, gene_lengths=None):
     if gene_lengths is None:
-        gene_lengths = pd.read_table(GENE_LENGTHS_FILE)
+        gene_lengths = pd.read_table(GENE_LENGTHS_FILE, index_col=0, header=None)
 
     X = mrna_count / gene_lengths.loc[mrna_count.index].values
     tpm = 1e6 * X / X.sum(axis=0)

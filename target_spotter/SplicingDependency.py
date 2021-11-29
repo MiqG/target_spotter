@@ -110,7 +110,7 @@ class SplicingDependency:
         # transform genexpr from counts to TPM
         if self.normalize_counts:
             print("Normalizing counts to TPM...")
-            genexpr = util.count_to_tpm(genexpr)
+            genexpr = utils.count_to_tpm(genexpr)
 
         # standardize
         ## PSI
