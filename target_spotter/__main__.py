@@ -7,12 +7,13 @@
 import pandas as pd
 import os
 import argparse
-import defaults, SplicingDependency, OneSampleDiff
+import defaults, SplicingDependency, OneSampleDiff, DrugAssociation
 
 APP_SCRIPT = defaults.APP_SCRIPT
 MAPPING_FILE = defaults.MAPPING_FILE
 FITTED_SPLDEP_DIR = defaults.FITTED_SPLDEP_DIR
 FITTED_ONEDIFF_DIR = defaults.FITTED_ONEDIFF_DIR
+FITTED_DRUGASSOC_DIR = defaults.FITTED_DRUGASSOC_DIR
 
 ##### FUNCTIONS #####
 def parse_args():
@@ -68,6 +69,24 @@ def parse_args():
     pred_parser.add_argument("--cancer_type", type=str, default=None)
     pred_parser.add_argument("--n_jobs", type=int, default=1)    
     
+    ## target_spotter drugassoc_fit
+    fit_parser = subparser.add_parser("drugassoc_fit", help="estimate splicing dependency.")
+    fit_parser.add_argument("--drug_response_file", type=str, required=True)
+    fit_parser.add_argument("--splicing_dependency_file", type=str, required=True)
+    fit_parser.add_argument("--growth_rates_file", type=str, default=None)
+    fit_parser.add_argument("--mapping_file", type=str, default=MAPPING_FILE)
+    fit_parser.add_argument("--selected_models_file", type=str, default=None)
+    fit_parser.add_argument("--output_dir", type=str, default=FITTED_DRUGASSOC_DIR)
+    fit_parser.add_argument("--n_jobs", type=int, default=1)
+    
+    ## target_spotter drugassoc_predict
+    pred_parser = subparser.add_parser("drugassoc_predict", help="estimate splicing dependency.")
+    pred_parser.add_argument("--splicing_dependency_file", type=str, required=True)
+    pred_parser.add_argument("--model_summaries_file", type=str, default=None)
+    pred_parser.add_argument("--growth_rates_file", type=str, default=None)
+    pred_parser.add_argument("--output_dir", type=str, default="drug_association")
+    pred_parser.add_argument("--n_jobs", type=int, default=1)    
+    
     # target_spotter app
     app_parser = subparser.add_parser("app", help="Explores splicing dependency through a web app.")
     
@@ -119,8 +138,6 @@ def main():
         ).run()
         
     elif args.cmd == "onediff_predict":
-        # load fitted defaults
-        
         OneSampleDiff.PredictFromFiles(
             data_file = args.data_file,
             median_refs_file = args.median_refs_file,
@@ -128,6 +145,17 @@ def main():
             output_dir = args.output_dir,
             cancer_type = args.cancer_type,
             n_jobs = args.n_jobs
+        ).run()
+        
+    elif args.cmd == "drugassoc_fit":
+        DrugAssociation.FitFromFiles(
+            drug_response_file = args.drug_response_file,
+            splicing_dependency_file = args.splicing_dependency_file,
+            growth_rates_file = args.growth_rates_file,
+            mapping_file = args.mapping_file,
+            selected_models_file = args.selected_models_file,
+            n_jobs = args.n_jobs,
+            output_dir=args.output_dir
         ).run()
     
     elif args.cmd == "app":
