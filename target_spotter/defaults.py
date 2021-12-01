@@ -15,6 +15,7 @@ RESULTS_DIR = "results"
 MAPPING_FILE = os.path.join(REFERENCES_DIR, "mapping.tsv.gz")
 GENE_LENGTHS_FILE = os.path.join(REFERENCES_DIR, "gene_lengths.tsv")
 CCLE_STATS_FILE = os.path.join(REFERENCES_DIR, "ccle_stats.tsv.gz")
+CCLE_PCA_FILE = os.path.join(REFERENCES_DIR, "ccle_pca.pickle.gz")
 
 # coefficients modeling gene dependency
 COEFS_SPLICING_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_splicing.pickle.gz")
@@ -24,7 +25,8 @@ COEFS_INTERCEPT_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_intercept.pickle.g
 
 # default outputs drug - splicing dependency associations
 MODEL_SUMMARIES_FILE = os.path.join(FITTED_DRUGASSOC_DIR, "model_summaries.tsv.gz")
-PCA_GROWTH_RATES_FILE = os.path.join(FITTED_DRUGASSOC_DIR, "pca_growth_rates.pickle.gz")
+FITTED_GROWTH_RATES_FILE = os.path.join(FITTED_DRUGASSOC_DIR, "growth_rates.tsv.gz")
+FITTED_SPLDEP_FILE = os.path.join(FITTED_DRUGASSOC_DIR, "fitted_splicing_dependency.tsv.gz")
 
 # app
 APP_SCRIPT = os.path.join(ROOT, "target_spotter", "app.py")

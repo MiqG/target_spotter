@@ -13,6 +13,7 @@ import numpy as np
 import statsmodels.api as sm
 from scipy import stats
 from sklearn import metrics
+from sklearn.impute import KNNImputer
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from joblib import Parallel, delayed
@@ -20,7 +21,52 @@ from tqdm import tqdm
 from glimix_core.lmm import LMM
 from numpy_sugar.linalg import economic_qs
 
+"""
+import os
+ROOT = '~/repositories/target_spotter/'
+model_summaries_file = os.path.join(ROOT,'data','fitted','drug_association','model_summaries.tsv.gz')
+fitted_spldep_file = os.path.join(ROOT,'data','fitted','drug_association','prep_splicing_dependency.tsv.gz')
+fitted_growth_rates_file = os.path.join(ROOT,'data','fitted','drug_association','growth_rates.tsv.gz')
+splicing_dependency_file = os.path.join(ROOT,'workflows','splicing_dependency','mean.tsv.gz')
+
+model_summaries = pd.read_table(model_summaries_file)
+splicing_dependency = pd.read_table(splicing_dependency_file, index_col=0).iloc[:,:3]
+splicing_dependency.columns = ['A','B','C']
+fitted_spldep = pd.read_table(fitted_spldep_file, index_col=0)
+fitted_growth_rates = pd.read_table(fitted_growth_rates_file, index_col=0)
+
+common_samples = set(fitted_growth_rates.index).intersection(fitted_spldep.columns)
+common_events = set(fitted_spldep.index).intersection(splicing_dependency.index).intersection(model_summaries["EVENT"])
+splicing_dependency = splicing_dependency.loc[common_events]
+fitted_spldep = fitted_spldep.loc[common_events, common_samples]
+fitted_growth_rates = fitted_growth_rates.loc[common_samples]
+model_summaries = model_summaries.loc[model_summaries["EVENT"].isin(common_events)]
+
+# compute growth_rates
+growth_rates = infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep)
+
+"""
+
 ##### FUNCTIONS #####
+def infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep):
+    # combine splicing dependencies and growth rates used for model fitting
+    # with new splicing dependencies
+    spldep = (
+        fitted_spldep.T.join(fitted_growth_rates)
+        .T.add_prefix("fitted_")
+        .join(splicing_dependency)
+    )
+
+    # impute growth rates
+    imputer = KNNImputer()
+    imputed = spldep.copy()  # create dataframe with same index and columns
+    imputed.values[:, :] = imputer.fit_transform(spldep.T).T
+
+    # prepare output
+    growth_rates = pd.DataFrame(imputed.loc["growth_rate", splicing_dependency.columns])
+    return growth_rates
+
+
 def get_drug_pcs(drug):
     drugmat = drug.pivot_table(
         index="DRUG_ID",
@@ -33,9 +79,7 @@ def get_drug_pcs(drug):
     pca = PCA(1)
     pca.fit(drugmat)
     growth_rates = pd.DataFrame(
-        pca.components_.T,
-        index=drugmat.columns,
-        columns=["growth_rate"],
+        pca.components_.T, index=drugmat.columns, columns=["growth_rate"],
     )
     return growth_rates, pca
 
@@ -198,7 +242,7 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
     sigma = spldep.cov()
     drugs_oi = drug["DRUG_ID"].unique()
     results = []
-    for drug_oi in drugs_oi[:3]: #####
+    for drug_oi in drugs_oi[:3]:  #####
         print(drug_oi)
 
         # prepare drug target variable
@@ -220,7 +264,7 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
                 gene,
                 method="limix",
             )
-            for event, ensembl, gene in tqdm(mapping.values[:100]) #####
+            for event, ensembl, gene in tqdm(mapping.values[:100])  #####
         )
         res = pd.DataFrame(res)
 
@@ -234,7 +278,6 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
         results.append(res)
 
     results = pd.concat(results)
-    results["DRUG_ID"] = results["DRUG_ID"].astype("int") # formatting
+    results["DRUG_ID"] = results["DRUG_ID"].astype("int")  # formatting
 
     return results
-

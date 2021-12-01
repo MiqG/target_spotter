@@ -82,10 +82,11 @@ def parse_args():
     ## target_spotter drugassoc_predict
     pred_parser = subparser.add_parser("drugassoc_predict", help="estimate splicing dependency.")
     pred_parser.add_argument("--splicing_dependency_file", type=str, required=True)
-    pred_parser.add_argument("--model_summaries_file", type=str, default=None)
     pred_parser.add_argument("--growth_rates_file", type=str, default=None)
+    pred_parser.add_argument("--model_summaries_file", type=str, default=None)
+    pred_parser.add_argument("--fitted_growth_rates_file", type=str, default=None)
+    pred_parser.add_argument("--fitted_spldep_file", type=str, default=None)
     pred_parser.add_argument("--output_dir", type=str, default="drug_association")
-    pred_parser.add_argument("--n_jobs", type=int, default=1)    
     
     # target_spotter app
     app_parser = subparser.add_parser("app", help="Explores splicing dependency through a web app.")
@@ -155,6 +156,16 @@ def main():
             mapping_file = args.mapping_file,
             selected_models_file = args.selected_models_file,
             n_jobs = args.n_jobs,
+            output_dir=args.output_dir
+        ).run()
+        
+    elif args.cmd == "drugassoc_predict":
+        DrugAssociation.PredictFromFiles(
+            splicing_dependency_file = args.splicing_dependency_file,
+            growth_rates_file = args.growth_rates_file,
+            model_summaries_file = args.model_summaries_file,
+            fitted_growth_rates_file = args.fitted_growth_rates_file,
+            fitted_spldep_file = args.fitted_spldep_file,
             output_dir=args.output_dir
         ).run()
     
