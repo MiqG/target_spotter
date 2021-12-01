@@ -242,7 +242,7 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
     sigma = spldep.cov()
     drugs_oi = drug["DRUG_ID"].unique()
     results = []
-    for drug_oi in drugs_oi[:3]:  #####
+    for drug_oi in drugs_oi:
         print(drug_oi)
 
         # prepare drug target variable
@@ -264,7 +264,7 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
                 gene,
                 method="limix",
             )
-            for event, ensembl, gene in tqdm(mapping.values[:100])  #####
+            for event, ensembl, gene in tqdm(mapping.values)
         )
         res = pd.DataFrame(res)
 

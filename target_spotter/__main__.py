@@ -80,7 +80,7 @@ def parse_args():
     fit_parser.add_argument("--n_jobs", type=int, default=1)
     
     ## target_spotter drugassoc_predict
-    pred_parser = subparser.add_parser("drugassoc_predict", help="estimate splicing dependency.")
+    pred_parser = subparser.add_parser("drugassoc_predict", help="estimate drug response.")
     pred_parser.add_argument("--splicing_dependency_file", type=str, required=True)
     pred_parser.add_argument("--growth_rates_file", type=str, default=None)
     pred_parser.add_argument("--model_summaries_file", type=str, default=None)
