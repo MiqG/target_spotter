@@ -56,11 +56,16 @@ def infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep):
         .T.add_prefix("fitted_")
         .join(splicing_dependency)
     )
-
+    
     # impute growth rates
+    ## create empty dataframe with same index and columns
+    imputed = spldep.copy()  
+    all_nan = imputed.isnull().all(axis=1)
+    imputed.values[:,:] = np.nan
+    
+    ## run imputer
     imputer = KNNImputer()
-    imputed = spldep.copy()  # create dataframe with same index and columns
-    imputed.values[:, :] = imputer.fit_transform(spldep.T).T
+    imputed.values[~all_nan, :] = imputer.fit_transform(spldep.T).T
 
     # prepare output
     growth_rates = pd.DataFrame(imputed.loc["growth_rate", splicing_dependency.columns])
