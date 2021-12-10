@@ -100,13 +100,32 @@ class DrugAssociation:
         )
 
         # log(IC50) ~ SplicingDependency + GrowthRate + Intercept
-        result = prep_model_summaries[["DRUG_ID", "EVENT", "ENSEMBL", "GENE"]].copy()
-        result[prep_splicing_dependency.columns] = np.nan
-        result[prep_splicing_dependency.columns] = (
+        ## inferred drug response per drug and event
+        full_est = prep_model_summaries[["DRUG_ID", "EVENT", "ENSEMBL", "GENE"]].copy()
+        full_est[prep_splicing_dependency.columns] = np.nan
+        full_est[prep_splicing_dependency.columns] = (
             coef_spldep * spldep + coef_gr * gr + coef_intercept
         )
-
-        return result
+        ## estimated drug response per drug
+        samples = prep_splicing_dependency.columns
+        drug_ests = []
+        for drug_id, drug_df in full_est.groupby(["DRUG_ID"]):
+            # prepare weights for weighted average
+            # higher pearson, higher contribution
+            weights = prep_model_summaries.loc[prep_model_summaries["DRUG_ID"]==drug_id]
+            weights = np.clip(weights.set_index("EVENT")["pearson_correlation"],0,1)
+            weights = weights / weights.sum()
+            
+            # get estimations by all event
+            m = drug_df.set_index("EVENT").loc[weights.index,samples].fillna(0).values
+            w = weights.fillna(0).values.reshape(-1,1)
+            ## (n. events x n.samples)^T dotprod. (n. events x 1) = (n.samples x 1)
+            drug_est = np.dot(m.T,w)
+            drug_est = pd.DataFrame({"DRUG_ID": drug_id, "sample": samples, "predicted_ic50": drug_est.ravel()})
+            drug_ests.append(drug_est)
+        drug_ests = pd.concat(drug_ests)
+        
+        return drug_ests, full_est
 
     def predict(
         self,
@@ -148,14 +167,15 @@ class DrugAssociation:
 
         # estimate splicing dependency
         print("Estimating drug responses...")
-        drug_response = self._estimate_drug_response(
+        drug_estimates, full_estimates = self._estimate_drug_response(
             self.prep_splicing_dependency_,
             self.prep_growth_rates_,
             self.prep_model_summaries_,
         )
-        self.drug_response_ = drug_response
+        self.drug_estimates_ = drug_estimates
+        self.full_estimates_ = full_estimates
 
-        return self.drug_response_
+        return self.drug_estimates_, self.full_estimates_
 
 
 class FitFromFiles:
@@ -324,11 +344,16 @@ class PredictFromFiles:
         self.growth_rates_ = growth_rates.loc[common_samples]
 
     def save(self, estimator):
-        drug_response = estimator.drug_response_
+        drug_estimates = estimator.drug_estimates_
+        full_estimates = estimator.full_estimates_
 
         os.makedirs(self.output_dir, exist_ok=True)
-        drug_response.to_csv(
-            os.path.join(self.output_dir, "estimated_drug_response.tsv.gz"),
+        drug_estimates.to_csv(
+            os.path.join(self.output_dir, "estimated_drug_response_by_drug.tsv.gz"),
+            **SAVE_PARAMS
+        )
+        full_estimates.to_csv(
+            os.path.join(self.output_dir, "estimated_drug_response_by_drug_and_event.tsv.gz"),
             **SAVE_PARAMS
         )
 
