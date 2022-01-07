@@ -1,0 +1,133 @@
+"""
+Oultine
+-------
+0. Fit cancer-driver splicing events
+1. Select cancer-driver splicing events models
+2. Combine selected models
+"""
+
+import os
+
+# variables
+ROOT = os.path.dirname(os.path.dirname(os.getcwd()))
+DATA_DIR = os.path.join(ROOT,'data')
+PREP_DIR = os.path.join(DATA_DIR,'prep')
+FITTED_DIR = os.path.join(DATA_DIR,'fitted')
+REFERENCES_DIR = os.path.join(DATA_DIR,'references')
+TS_DIR = ROOT
+EVENT_TYPES = ['EX','ALTA','ALTD','INT']
+
+
+##### RULES #####
+rule all:
+    input:
+        # fit gene dependencies and get empirical distributions of coefficients
+        expand(os.path.join(FITTED_DIR,'splicing_dependency','{event_type}'), event_type=EVENT_TYPES),
+        
+        # write selected models
+        os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt'),
+        
+        # combine selected models
+        os.path.join(FITTED_DIR,'splicing_dependency','selected')
+        
+        
+rule model_gene_dependency:
+    input:
+        splicing_file = os.path.join(PREP_DIR,'event_psi','CCLE-{event_type}.tsv.gz'),
+        genexpr_file = os.path.join(PREP_DIR,'genexpr_tpm','CCLE.tsv.gz'),
+        gene_dependency_file = os.path.join(PREP_DIR,'demeter2','CCLE.tsv.gz'),
+        mapping_file = os.path.join(REFERENCES_DIR,'mapping.tsv.gz')
+    output:
+        directory(os.path.join(FITTED_DIR,'splicing_dependency','{event_type}'))
+    threads: 20
+    resources:
+        runtime = 604800, # seconds = 168h = 7 days
+        memory = 30
+    params:
+        script_dir = TS_DIR,
+        n_iterations = 500
+    shell:
+        """
+        python {params.script_dir}/target_spotter spldep_fit \
+                    --gene_dependency_file={input.gene_dependency_file} \
+                    --splicing_file={input.splicing_file} \
+                    --genexpr_file={input.genexpr_file} \
+                    --mapping_file={input.mapping_file} \
+                    --output_dir={output} \
+                    --n_iterations={params.n_iterations} \
+                    --n_jobs={threads}
+        """
+        
+        
+rule list_selected_models:
+    input:
+        [os.path.join(FITTED_DIR,'splicing_dependency','{event_type}','model_summaries.tsv.gz').format(event_type=e) for e in EVENT_TYPES]
+    output:
+        os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt')
+    params:
+        thresh_lr_pvalue = 0.005,
+        thresh_corr = 0.2
+    run:
+        import os
+        import pandas as pd
+        
+        selected_models = []
+        for fin in input:
+            event_type = os.path.basename(os.path.dirname(fin))
+            models = pd.read_table(fin)
+            models = models.loc[
+                (models['lr_pvalue']<params.thresh_lr_pvalue) &
+                (models['pearson_correlation_mean']>params.thresh_corr)
+            ].copy()
+            selected_models.append(models['EVENT'].to_list())
+        selected_models = sum(selected_models,[])
+        
+        with open(output[0], 'w') as fout:
+            for event in selected_models:
+                fout.write("%s\n" % event)
+                
+                
+rule combine_selected_models:
+    input:
+        fitted_models_dir = [os.path.join(FITTED_DIR,'splicing_dependency','{event_type}').format(event_type=e) for e in EVENT_TYPES],
+        selected_models = os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt')
+    output:
+        directory(os.path.join(FITTED_DIR,'splicing_dependency','selected'))
+    run:
+        import os
+        import pandas as pd
+        
+        selected_models = pd.read_table(input.selected_models, header=None)[0].to_list()
+        coefs_splicings = []
+        coefs_genexprs = []
+        coefs_interactions = []
+        coefs_intercepts = []
+        for d in input.fitted_models_dir:
+            coefs_splicing = pd.read_pickle(os.path.join(d,'coefs_splicing.pickle.gz'))
+            coefs_genexpr = pd.read_pickle(os.path.join(d,'coefs_genexpr.pickle.gz'))
+            coefs_interaction = pd.read_pickle(os.path.join(d,'coefs_interaction.pickle.gz'))
+            coefs_intercept = pd.read_pickle(os.path.join(d,'coefs_intercept.pickle.gz'))
+            
+            coefs_splicing = coefs_splicing.loc[coefs_splicing['EVENT'].isin(selected_models)]
+            coefs_genexpr = coefs_genexpr.loc[coefs_genexpr['EVENT'].isin(selected_models)]
+            coefs_interaction = coefs_interaction.loc[coefs_interaction['EVENT'].isin(selected_models)]
+            coefs_intercept = coefs_intercept.loc[coefs_intercept['EVENT'].isin(selected_models)]
+            
+            coefs_splicings.append(coefs_splicing)
+            coefs_genexprs.append(coefs_genexpr)
+            coefs_interactions.append(coefs_interaction)
+            coefs_intercepts.append(coefs_intercept)
+            
+            del coefs_splicing, coefs_genexpr, coefs_interaction, coefs_intercept
+            
+        coefs_splicings = pd.concat(coefs_splicings)
+        coefs_genexprs = pd.concat(coefs_genexprs)
+        coefs_interactions = pd.concat(coefs_interactions)
+        coefs_intercepts = pd.concat(coefs_intercepts)
+        
+        os.makedirs(output[0])
+        coefs_splicings.to_pickle(os.path.join(output[0],'coefs_splicing.pickle.gz'))
+        coefs_genexprs.to_pickle(os.path.join(output[0],'coefs_genexpr.pickle.gz'))
+        coefs_interactions.to_pickle(os.path.join(output[0],'coefs_interaction.pickle.gz'))
+        coefs_intercepts.to_pickle(os.path.join(output[0],'coefs_intercept.pickle.gz'))
+        
