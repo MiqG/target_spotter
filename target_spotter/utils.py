@@ -35,7 +35,7 @@ def count_to_tpm(mrna_count, gene_lengths=None):
 
 
 def compute_single_splicing_dependency(
-    b_event, b_gene, b_interaction, b_intercept, x_splicing, x_genexpr
+    b_event, b_gene, b_intercept, x_splicing, x_genexpr
 ):
 
     samples = x_splicing.index
@@ -43,10 +43,9 @@ def compute_single_splicing_dependency(
 
     PSI = x_splicing.values.reshape(1, -1)
     TPM = x_genexpr.values.reshape(1, -1)
-    PROD = PSI * TPM
 
     # compute
-    y = b_intercept + b_event * PSI + b_gene * TPM + b_interaction * PROD
+    y = b_intercept + b_event * PSI + b_gene * TPM
 
     # summarize
     mean = pd.Series(np.mean(y, axis=0), index=samples, name=event)
@@ -63,16 +62,12 @@ def compute_splicing_dependency(
     genexpr,
     coefs_event,
     coefs_gene,
-    coefs_interaction,
     coefs_intercept,
     n_jobs,
 ):
     # prep coefficients
     coefs_event = coefs_event.drop(columns=["GENE"]).set_index(["EVENT", "ENSEMBL"])
     coefs_gene = coefs_gene.drop(columns=["GENE"]).set_index(["EVENT", "ENSEMBL"])
-    coefs_interaction = coefs_interaction.drop(columns=["GENE"]).set_index(
-        ["EVENT", "ENSEMBL"]
-    )
     coefs_intercept = coefs_intercept.drop(columns=["GENE"]).set_index(
         ["EVENT", "ENSEMBL"]
     )
@@ -84,7 +79,6 @@ def compute_splicing_dependency(
         delayed(compute_single_splicing_dependency)(
             b_event=coefs_event.loc[(event, gene)].values.reshape(-1, 1),
             b_gene=coefs_gene.loc[(event, gene)].values.reshape(-1, 1),
-            b_interaction=coefs_interaction.loc[(event, gene)].values.reshape(-1, 1),
             b_intercept=coefs_intercept.loc[(event, gene)].values.reshape(-1, 1),
             x_splicing=splicing.loc[event],
             x_genexpr=genexpr.loc[gene],

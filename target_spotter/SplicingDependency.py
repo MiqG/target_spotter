@@ -24,7 +24,6 @@ FITTED_SPLDEP_DIR = defaults.FITTED_SPLDEP_DIR
 CCLE_STATS_FILE = defaults.CCLE_STATS_FILE
 COEFS_SPLICING_FILE = defaults.COEFS_SPLICING_FILE
 COEFS_GENEXPR_FILE = defaults.COEFS_GENEXPR_FILE
-COEFS_INTERACTION_FILE = defaults.COEFS_INTERACTION_FILE
 COEFS_INTERCEPT_FILE = defaults.COEFS_INTERCEPT_FILE
 SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 
@@ -56,7 +55,6 @@ class SplicingDependency:
             summaries,
             coefs_splicing,
             coefs_genexpr,
-            coefs_interaction,
             coefs_intercept,
         ) = fit_models(
             gene_dependency, splicing, genexpr, mapping, self.n_iterations, self.n_jobs,
@@ -65,7 +63,6 @@ class SplicingDependency:
         self.summaries_ = summaries
         self.coefs_splicing_ = coefs_splicing
         self.coefs_genexpr_ = coefs_genexpr
-        self.coefs_interaction_ = coefs_interaction
         self.coefs_intercept_ = coefs_intercept
 
     def _preprocess(self):
@@ -75,7 +72,6 @@ class SplicingDependency:
         genexpr = self.genexpr_
         coefs_splicing = self.coefs_splicing_
         coefs_genexpr = self.coefs_genexpr_
-        coefs_interaction = self.coefs_interaction_
         coefs_intercept = self.coefs_intercept_
 
         # subset
@@ -101,13 +97,9 @@ class SplicingDependency:
             coefs_genexpr["EVENT"].isin(common_events)
             & coefs_genexpr["ENSEMBL"].isin(common_genes)
         ].copy()
-        coefs_interaction = coefs_interaction.loc[
-            coefs_interaction["EVENT"].isin(common_events)
-            & coefs_interaction["ENSEMBL"].isin(common_genes)
-        ].copy()
-        coefs_interaction = coefs_interaction.loc[
-            coefs_interaction["EVENT"].isin(common_events)
-            & coefs_interaction["ENSEMBL"].isin(common_genes)
+        coefs_intercept = coefs_intercept.loc[
+            coefs_intercept["EVENT"].isin(common_events)
+            & coefs_intercept["ENSEMBL"].isin(common_genes)
         ].copy()
         splicing = splicing.loc[common_events, common_samples].copy()
         genexpr = genexpr.loc[common_genes, common_samples].copy()
@@ -149,7 +141,6 @@ class SplicingDependency:
         self.prep_genexpr_ = genexpr
         self.coefs_splicing_ = coefs_splicing
         self.coefs_genexpr_ = coefs_genexpr
-        self.coefs_interaction_ = coefs_interaction
         self.coefs_intercept_ = coefs_intercept
 
     def predict(
@@ -159,7 +150,6 @@ class SplicingDependency:
         ccle_stats=None,
         coefs_splicing=None,
         coefs_genexpr=None,
-        coefs_interaction=None,
         coefs_intercept=None
     ):
         # prepare
@@ -169,7 +159,6 @@ class SplicingDependency:
         self.ccle_stats_ = ccle_stats
         self.coefs_splicing_ = coefs_splicing
         self.coefs_genexpr_ = coefs_genexpr
-        self.coefs_interaction_ = coefs_interaction
         self.coefs_intercept_ = coefs_intercept
 
         ## load defaults
@@ -180,8 +169,6 @@ class SplicingDependency:
             self.coefs_splicing_ = pd.read_pickle(COEFS_SPLICING_FILE)
         if coefs_genexpr is None:
             self.coefs_genexpr_ = pd.read_pickle(COEFS_GENEXPR_FILE)
-        if coefs_interaction is None:
-            self.coefs_interaction_ = pd.read_pickle(COEFS_INTERACTION_FILE)
         if coefs_intercept is None:
             self.coefs_intercept_ = pd.read_pickle(COEFS_INTERCEPT_FILE)
         
@@ -196,7 +183,6 @@ class SplicingDependency:
             self.prep_genexpr_,
             self.coefs_splicing_,
             self.coefs_genexpr_,
-            self.coefs_interaction_,
             self.coefs_intercept_,
             self.n_jobs
         )
@@ -230,7 +216,7 @@ class FitFromFiles:
 
         # parameters
         self.normalize_counts = normalize_counts
-        self.log_tranform = log_transform
+        self.log_transform = log_transform
         self.n_iterations = n_iterations
         self.n_jobs = n_jobs
 
@@ -292,7 +278,6 @@ class FitFromFiles:
         summaries = estimator.summaries_
         coefs_splicing = estimator.coefs_splicing_
         coefs_genexpr = estimator.coefs_genexpr_
-        coefs_interaction = estimator.coefs_interaction_
         coefs_intercept = estimator.coefs_intercept_
 
         os.makedirs(self.output_dir, exist_ok=True)
@@ -302,12 +287,7 @@ class FitFromFiles:
         )
         coefs_splicing.to_pickle(os.path.join(self.output_dir, "coefs_splicing.pickle.gz"))
         coefs_genexpr.to_pickle(os.path.join(self.output_dir, "coefs_genexpr.pickle.gz"))
-        coefs_interaction.to_pickle(
-            os.path.join(self.output_dir, "coefs_interaction.pickle.gz")
-        )
-        coefs_intercept.to_pickle(
-            os.path.join(self.output_dir, "coefs_intercept.pickle.gz")
-        )
+        coefs_intercept.to_pickle(os.path.join(self.output_dir, "coefs_intercept.pickle.gz"))
 
     def run(self):
         print("Loading data...")
@@ -336,7 +316,6 @@ class PredictFromFiles:
         ccle_stats_file=None,
         coefs_splicing_file=None,
         coefs_genexpr_file=None,
-        coefs_interaction_file=None,
         coefs_intercept_file=None,
         output_dir="splicing_dependency",
         normalize_counts=False,
@@ -350,7 +329,6 @@ class PredictFromFiles:
         self.ccle_stats_file = ccle_stats_file
         self.coefs_splicing_file = coefs_splicing_file
         self.coefs_genexpr_file = coefs_genexpr_file
-        self.coefs_interaction_file = coefs_interaction_file
         self.coefs_intercept_file = coefs_intercept_file
 
         # outputs
@@ -375,8 +353,6 @@ class PredictFromFiles:
             self.coefs_splicing_file = COEFS_SPLICING_FILE
         if self.coefs_genexpr_file is None:
             self.coefs_genexpr_file = COEFS_GENEXPR_FILE
-        if self.coefs_interaction_file is None:
-            self.coefs_interaction_file = COEFS_INTERACTION_FILE
         if self.coefs_intercept_file is None:
             self.coefs_intercept_file = COEFS_INTERCEPT_FILE
         
@@ -384,7 +360,6 @@ class PredictFromFiles:
         ccle_stats = pd.read_table(self.ccle_stats_file).set_index(["EVENT", "ENSEMBL"])
         coefs_splicing = pd.read_pickle(self.coefs_splicing_file)
         coefs_genexpr = pd.read_pickle(self.coefs_genexpr_file)
-        coefs_interaction = pd.read_pickle(self.coefs_interaction_file)
         coefs_intercept = pd.read_pickle(self.coefs_intercept_file)
         
         gc.collect()
@@ -395,7 +370,6 @@ class PredictFromFiles:
         self.ccle_stats_ = ccle_stats
         self.coefs_splicing_ = coefs_splicing
         self.coefs_genexpr_ = coefs_genexpr
-        self.coefs_interaction_ = coefs_interaction
         self.coefs_intercept_ = coefs_intercept
 
         
@@ -430,7 +404,6 @@ class PredictFromFiles:
             self.ccle_stats_,
             self.coefs_splicing_,
             self.coefs_genexpr_,
-            self.coefs_interaction_,
             self.coefs_intercept_,
         )
 

@@ -43,7 +43,6 @@ def parse_args():
     pred_parser.add_argument("--ccle_stats_file", type=str, default=None)
     pred_parser.add_argument("--coefs_splicing_file", type=str, default=None)
     pred_parser.add_argument("--coefs_genexpr_file", type=str, default=None)
-    pred_parser.add_argument("--coefs_interaction_file", type=str, default=None)
     pred_parser.add_argument("--coefs_intercept_file", type=str, default=None)
     pred_parser.add_argument("--output_dir", type=str, default="splicing_dependency")
     pred_parser.add_argument("--normalize_counts", choices=("True", "False"), default="False")
@@ -103,6 +102,7 @@ def parse_args():
 def main():
     args = parse_args()
     print(args)
+    
     # SplicingDependency
     if args.cmd == "spldep_fit":
         SplicingDependency.FitFromFiles(
@@ -124,7 +124,6 @@ def main():
             ccle_stats_file=args.ccle_stats_file,
             coefs_splicing_file=args.coefs_splicing_file,
             coefs_genexpr_file=args.coefs_genexpr_file,
-            coefs_interaction_file=args.coefs_interaction_file,
             coefs_intercept_file=args.coefs_intercept_file,
             output_dir=args.output_dir,
             normalize_counts=args.normalize_counts == "True",
