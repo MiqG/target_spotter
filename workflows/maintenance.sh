@@ -18,16 +18,31 @@ GENEXPR_FILE=$ROOT'/data/prep/genexpr_tpm/CCLE.tsv.gz'
 #         --splicing_file=$SPLICING_FILES \
 #         --genexpr_file=$GENEXPR_FILE
 
+##### SplicingDependency #####
 # re-run model fitting
-# python $ROOT/target_spotter fit \
+# echo "fitting splicing dependencies"
+# SPLICING_FILE=$ROOT'/data/examples/CCLE/splicing_EX.tsv.gz'
+# GENEXPR_FILE=$ROOT'/data/examples/CCLE/genexpr.tsv.gz'
+# python $ROOT/target_spotter spldep_fit \
 #         --gene_dependency_file=$GENE_DEPENDENCY_FILE \
 #         --splicing_file=$SPLICING_FILE \
 #         --genexpr_file=$GENEXPR_FILE \
 #         --n_jobs=10 \
 #         --n_iterations=2
 
+# test prediction of splicing dependencies
+# echo "predicting splicing dependencies"
+# SPLICING_FILE=$ROOT/'data/examples/CCLE/splicing_EX.tsv.gz'
+# GENEXPR_FILE=$ROOT/'data/examples/CCLE/genexpr.tsv.gz'
+# python $ROOT/target_spotter spldep_predict \
+#         --splicing_file=$SPLICING_FILE \
+#         --genexpr_file=$GENEXPR_FILE \
+#         --output_dir='splicing_dependency' \
+#         --n_jobs=10
+
 # python $ROOT/target_spotter app
 
+##### OneSampleDiff #####
 # one-sample differential analysis
 TCGA_PSI=$ROOT'/data/prep/event_psi/KICH.tsv'
 TCGA_METADATA=$ROOT'/data/prep/metadata/KICH.tsv'
@@ -51,31 +66,23 @@ OUTPUT_DIR=$ROOT'/data/fitted/onesample_diff/TCGA/KICH'
 #             --cancer_type="KICH" \
 #             --n_jobs=10
 
-# test prediction of splicing dependencies
-# echo "predicting splicing dependencies"
-# SPLICING_FILE=$ROOT/'data/examples/CCLE/splicing_EX.tsv.gz'
-# GENEXPR_FILE=$ROOT/'data/examples/CCLE/genexpr.tsv.gz'
-# python $ROOT/target_spotter spldep_predict \
-#         --splicing_file=$SPLICING_FILE \
-#         --genexpr_file=$GENEXPR_FILE \
-#         --output_dir='splicing_dependency' \
-#         --n_jobs=10
 
-
+##### DrugAssociation #####
 DRUG_FILE=$ROOT/'data/prep/drug_screens/GDSC1.tsv.gz'
 SPLDEP_FILE='splicing_dependency/mean.tsv.gz'
 SELECTED_MODELS_FILE=$ROOT/'data/fitted/splicing_dependency/selected_models.txt'
 
 # compute drug associations
+# echo "fitting spldep against drug responses"
 # python $ROOT/target_spotter drugassoc_fit \
 #             --drug_response_file=$DRUG_FILE \
 #             --splicing_dependency_file=$SPLDEP_FILE \
 #             --n_jobs=10
             
 # estimate drug associations
-echo "estimating drug responses"
-python $ROOT/target_spotter drugassoc_predict \
-            --splicing_dependency_file=$SPLDEP_FILE \
-            --output_dir='result'
+# echo "estimating drug responses"
+# python $ROOT/target_spotter drugassoc_predict \
+#             --splicing_dependency_file=$SPLDEP_FILE \
+#             --output_dir='result'
 
 echo "Finished maintenance!"
