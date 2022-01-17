@@ -11,6 +11,7 @@
 # gene_dependency = intercept + psi + genexpr + psi*genexpr
 # splicing_dependency = intercept + psi + psi*genexprs
 
+import numpy as np
 import pandas as pd
 import os
 import gc
@@ -29,9 +30,10 @@ SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 
 #### FUNCTIONS ####
 class SplicingDependency:
-    def __init__(self, normalize_counts=True, n_iterations=100, n_jobs=None):
+    def __init__(self, normalize_counts=False, log_transform=False, n_iterations=100, n_jobs=None):
         # parameters
         self.normalize_counts = normalize_counts
+        self.log_transform = log_transform
         self.n_iterations = n_iterations
         self.n_jobs = n_jobs
 
@@ -41,6 +43,9 @@ class SplicingDependency:
         if self.normalize_counts:
             print("Normalizing counts to TPM...")
             genexpr = utils.count_to_tpm(genexpr)
+        elif self.log_transform:
+            print("Transforming TPM into log2(TPM+1)...")
+            genexpr = np.log2(genexpr+1)
 
         ## load default mapping
         if mapping is None:
@@ -111,6 +116,9 @@ class SplicingDependency:
         if self.normalize_counts:
             print("Normalizing counts to TPM...")
             genexpr = utils.count_to_tpm(genexpr)
+        elif self.log_transform:
+            print("Transforming TPM into log2(TPM+1)...")
+            genexpr = np.log2(genexpr+1)
 
         # standardize
         ## PSI
@@ -206,6 +214,7 @@ class FitFromFiles:
         mapping_file=MAPPING_FILE,
         output_dir=FITTED_SPLDEP_DIR,
         normalize_counts=False,
+        log_transform=False,
         n_iterations=100,
         n_jobs=None,
     ):
@@ -221,6 +230,7 @@ class FitFromFiles:
 
         # parameters
         self.normalize_counts = normalize_counts
+        self.log_tranform = log_transform
         self.n_iterations = n_iterations
         self.n_jobs = n_jobs
 
@@ -306,6 +316,7 @@ class FitFromFiles:
         print("Fitting models...")
         estimator = SplicingDependency(
             normalize_counts=self.normalize_counts,
+            log_transform=self.log_transform,
             n_iterations=self.n_iterations,
             n_jobs=self.n_jobs,
         )
@@ -329,7 +340,7 @@ class PredictFromFiles:
         coefs_intercept_file=None,
         output_dir="splicing_dependency",
         normalize_counts=False,
-        n_iterations=100,
+        log_transform=False,
         n_jobs=None,
     ):
 
@@ -347,7 +358,7 @@ class PredictFromFiles:
 
         # parameters
         self.normalize_counts = normalize_counts
-        self.n_iterations = n_iterations
+        self.log_transform = log_transform
         self.n_jobs = n_jobs
 
     def load_data(self):
@@ -410,7 +421,7 @@ class PredictFromFiles:
         print("Estimating splicing dependencies...")
         estimator = SplicingDependency(
             normalize_counts=self.normalize_counts,
-            n_iterations=self.n_iterations,
+            log_transform=self.log_transform,
             n_jobs=self.n_jobs,
         )
         _ = estimator.predict(
