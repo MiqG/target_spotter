@@ -65,7 +65,7 @@ rule list_selected_models:
     output:
         os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt')
     params:
-        thresh_lr_pvalue = 0.005,
+        thresh_lr_pvalue = 0.025,
         thresh_corr = 0.2
     run:
         import os
@@ -100,34 +100,28 @@ rule combine_selected_models:
         selected_models = pd.read_table(input.selected_models, header=None)[0].to_list()
         coefs_splicings = []
         coefs_genexprs = []
-        coefs_interactions = []
         coefs_intercepts = []
         for d in input.fitted_models_dir:
             coefs_splicing = pd.read_pickle(os.path.join(d,'coefs_splicing.pickle.gz'))
             coefs_genexpr = pd.read_pickle(os.path.join(d,'coefs_genexpr.pickle.gz'))
-            coefs_interaction = pd.read_pickle(os.path.join(d,'coefs_interaction.pickle.gz'))
             coefs_intercept = pd.read_pickle(os.path.join(d,'coefs_intercept.pickle.gz'))
             
             coefs_splicing = coefs_splicing.loc[coefs_splicing['EVENT'].isin(selected_models)]
             coefs_genexpr = coefs_genexpr.loc[coefs_genexpr['EVENT'].isin(selected_models)]
-            coefs_interaction = coefs_interaction.loc[coefs_interaction['EVENT'].isin(selected_models)]
             coefs_intercept = coefs_intercept.loc[coefs_intercept['EVENT'].isin(selected_models)]
             
             coefs_splicings.append(coefs_splicing)
             coefs_genexprs.append(coefs_genexpr)
-            coefs_interactions.append(coefs_interaction)
             coefs_intercepts.append(coefs_intercept)
             
-            del coefs_splicing, coefs_genexpr, coefs_interaction, coefs_intercept
+            del coefs_splicing, coefs_genexpr, coefs_intercept
             
         coefs_splicings = pd.concat(coefs_splicings)
         coefs_genexprs = pd.concat(coefs_genexprs)
-        coefs_interactions = pd.concat(coefs_interactions)
         coefs_intercepts = pd.concat(coefs_intercepts)
         
         os.makedirs(output[0])
         coefs_splicings.to_pickle(os.path.join(output[0],'coefs_splicing.pickle.gz'))
         coefs_genexprs.to_pickle(os.path.join(output[0],'coefs_genexpr.pickle.gz'))
-        coefs_interactions.to_pickle(os.path.join(output[0],'coefs_interaction.pickle.gz'))
         coefs_intercepts.to_pickle(os.path.join(output[0],'coefs_intercept.pickle.gz'))
         
