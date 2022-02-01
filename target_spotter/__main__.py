@@ -31,8 +31,8 @@ def parse_args():
     fit_parser.add_argument("--genexpr_file", type=str, required=True)
     fit_parser.add_argument("--mapping_file", type=str, default=MAPPING_FILE)
     fit_parser.add_argument("--output_dir", type=str, default=FITTED_SPLDEP_DIR)
-    fit_parser.add_argument("--normalize_counts", choices=("True", "False"), default="False")
-    fit_parser.add_argument("--log_transform", choices=("True", "False"), default="False")
+    fit_parser.add_argument("--normalize_counts", action="store_true")
+    fit_parser.add_argument("--log_transform", action="store_true")
     fit_parser.add_argument("--n_iterations", type=int, default=100)
     fit_parser.add_argument("--n_jobs", type=int, default=1)
 
@@ -45,8 +45,8 @@ def parse_args():
     pred_parser.add_argument("--coefs_genexpr_file", type=str, default=None)
     pred_parser.add_argument("--coefs_intercept_file", type=str, default=None)
     pred_parser.add_argument("--output_dir", type=str, default="splicing_dependency")
-    pred_parser.add_argument("--normalize_counts", choices=("True", "False"), default="False")
-    pred_parser.add_argument("--log_transform", choices=("True", "False"), default="False")
+    pred_parser.add_argument("--normalize_counts", action="store_true")
+    pred_parser.add_argument("--log_transform", action="store_true")
     pred_parser.add_argument("--n_jobs", type=int, default=1)
 
     # OneSampleDiff
@@ -111,8 +111,8 @@ def main():
             genexpr_file=args.genexpr_file,
             mapping_file=args.mapping_file,
             output_dir=args.output_dir,
-            normalize_counts=args.normalize_counts == "True",
-            log_transform=args.log_transform == "True",
+            normalize_counts=args.normalize_counts,
+            log_transform=args.log_transform,
             n_iterations=args.n_iterations,
             n_jobs=args.n_jobs,
         ).run()
@@ -126,8 +126,8 @@ def main():
             coefs_genexpr_file=args.coefs_genexpr_file,
             coefs_intercept_file=args.coefs_intercept_file,
             output_dir=args.output_dir,
-            normalize_counts=args.normalize_counts == "True",
-            log_transform=args.log_transform == "True",
+            normalize_counts=args.normalize_counts,
+            log_transform=args.log_transform,
             n_jobs=args.n_jobs,
         ).run()
 
