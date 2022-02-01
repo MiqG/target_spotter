@@ -28,6 +28,7 @@ def count_to_tpm(mrna_count, gene_lengths=None):
         gene_lengths = pd.read_table(GENE_LENGTHS_FILE, index_col=0, header=None)
 
     X = mrna_count / gene_lengths.loc[mrna_count.index].values
+    X = X.replace([np.inf, -np.inf], np.nan)
     tpm = 1e6 * X / X.sum(axis=0)
     log_tpm = np.log2(tpm + 1)
 
