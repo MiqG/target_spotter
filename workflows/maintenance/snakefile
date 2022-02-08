@@ -17,6 +17,25 @@ REFERENCES_DIR = os.path.join(DATA_DIR,'references')
 TS_DIR = ROOT
 EVENT_TYPES = ['EX','ALTA','ALTD','INT']
 
+CANCER_TYPES = [
+    'BRCA',
+    'COAD',
+    'GBM',
+    'HNSC',
+    'KICH',
+    'KIRC',
+    'KIRP',
+    'LGG',
+    'LIHC',
+    'LUAD',
+    'LUSC',
+    'PRAD',
+    'READ',
+    'THCA',
+    'UCEC',
+    'UCS'
+]
+
 
 ##### RULES #####
 rule all:
@@ -28,7 +47,10 @@ rule all:
         os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt'),
         
         # combine selected models
-        os.path.join(FITTED_DIR,'splicing_dependency','selected')
+        os.path.join(FITTED_DIR,'splicing_dependency','selected'),
+        
+        # one-sample diff fitting
+        expand(os.path.join(FITTED_DIR,'onesample_diff','TCGA','{cancer}'), cancer=["KICH","UCEC"])#CANCER_TYPES)
         
         
 rule model_gene_dependency:
@@ -125,3 +147,30 @@ rule combine_selected_models:
         coefs_genexprs.to_pickle(os.path.join(output[0],'coefs_genexpr.pickle.gz'))
         coefs_intercepts.to_pickle(os.path.join(output[0],'coefs_intercept.pickle.gz'))
         
+        
+        
+rule fit_onesample_diff:
+    input:
+        psi = os.path.join(PREP_DIR,'event_psi','{cancer}.tsv'),
+        metadata = os.path.join(PREP_DIR,'metadata','{cancer}.tsv')
+    output:
+        directory(os.path.join(FITTED_DIR,'onesample_diff','TCGA','{cancer}'))
+    params:
+        script_dir = TS_DIR,
+        sample_col = "sampleID",
+        comparison_col = "sample_type",
+        condition_oi = "Primary Tumor",
+        condition_ref = "Solid Tissue Normal"
+    threads: 5
+    shell:
+        """
+        python {params.script_dir}/target_spotter onediff_fit \
+                --data_file={input.psi} \
+                --metadata_file={input.metadata} \
+                --sample_col={params.sample_col} \
+                --comparison_col={params.comparison_col} \
+                --condition_oi="{params.condition_oi}" \
+                --condition_ref="{params.condition_ref}" \
+                --output_dir={output} \
+                --n_jobs={threads}
+        """

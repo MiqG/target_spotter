@@ -171,7 +171,7 @@ class FitFromFiles:
 
     def load_data(self):
         # read
-        data = pd.read_table(self.data_file, index_col=0).iloc[:500]; print("DEV")
+        data = pd.read_table(self.data_file, index_col=0) # .iloc[:500]; print("DEV")
         metadata = pd.read_table(self.metadata_file)
 
         # subset
