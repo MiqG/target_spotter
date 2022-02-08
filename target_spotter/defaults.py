@@ -45,12 +45,16 @@ EXAMPLE_FILES = {
 # TCGA
 ## one-sample differential analyses
 TCGA_MEDIAN_REFS_FILES = {
-    "KICH": os.path.join(FITTED_ONEDIFF_DIR, "TCGA", "KICH", "median_refs.tsv.gz")
+    "KICH": os.path.join(FITTED_ONEDIFF_DIR, "TCGA", "KICH", "median_refs.tsv.gz"),
+    "UCEC": os.path.join(FITTED_ONEDIFF_DIR, "TCGA", "UCEC", "median_refs.tsv.gz")
 }
 
 TCGA_POPULATION_DELTAS_FILES = {
     "KICH": os.path.join(
         FITTED_ONEDIFF_DIR, "TCGA", "KICH", "population_deltas.pickle.gz"
+    ),
+    "UCEC": os.path.join(
+        FITTED_ONEDIFF_DIR, "TCGA", "UCEC", "population_deltas.pickle.gz"
     )
 }
 ##
