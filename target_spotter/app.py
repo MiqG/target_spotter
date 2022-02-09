@@ -1,6 +1,6 @@
 import pandas as pd
 import defaults
-from SplicingDependency import SplicingDependency, PredictFromFile
+from SplicingDependency import SplicingDependency, PredictFromFiles
 import utils
 import streamlit as st
 import tempfile
@@ -109,10 +109,7 @@ def select_options():
 
     # parameters
     with st.expander("Set parameters", expanded=True):
-        genexpr_units = st.selectbox(
-            "Gene expression units:",
-            ["TPM", "Counts"],
-        )
+        genexpr_units = st.selectbox("Gene expression units:", ["TPM", "Counts"],)
         if genexpr_units == "TPM":
             normalize_counts = False
         elif genexpr_units == "Counts":
@@ -136,7 +133,7 @@ def select_options():
 
 def upload_data(files, params):
     dirpath = os.path.join(tempfile.mkdtemp(), "splicing_dependency")
-    predictor = PredictFromFile(
+    predictor = PredictFromFiles(
         splicing_file=files["splicing"],
         genexpr_file=files["genexpr"],
         output_dir=dirpath,
@@ -154,10 +151,18 @@ def estimate_dependencies(predictor):
     st.info("Estimating splicing dependencies...")
     estimator = SplicingDependency(
         normalize_counts=predictor.normalize_counts,
-        n_iterations=predictor.n_iterations,
+        log_transform=predictor.log_transform,
         n_jobs=predictor.n_jobs,
     )
-    _ = estimator.predict(predictor.splicing_, predictor.genexpr_,)
+    _ = estimator.predict(
+        predictor.splicing_,
+        predictor.genexpr_,
+        predictor.ccle_stats_,
+        predictor.coefs_splicing_,
+        predictor.coefs_genexpr_,
+        predictor.coefs_intercept_,
+    )
+
     st.info("Finished!")
     return estimator
 
