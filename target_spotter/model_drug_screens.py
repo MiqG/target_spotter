@@ -74,7 +74,7 @@ def infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep):
 
 def get_drug_pcs(drug):
     drugmat = drug.pivot_table(
-        index="DRUG_ID",
+        index="ID",
         columns="ARXSPAN_ID",
         values="IC50_PUBLISHED",
         aggfunc=np.median,
@@ -141,7 +141,7 @@ def fit_limixmodel(y, X, sigma):
 
     # make summary
     summary = {
-        "DRUG_ID": np.nan,
+        "ID": np.nan,
         "EVENT": np.nan,
         "ENSEMBL": np.nan,
         "GENE": np.nan,
@@ -202,7 +202,7 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
         summary = pd.Series(
             np.nan,
             index=[
-                "DRUG_ID",
+                "ID",
                 "EVENT",
                 "ENSEMBL",
                 "GENE",
@@ -230,7 +230,7 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
             ],
         )
     # update
-    summary["DRUG_ID"] = y_drug.name
+    summary["ID"] = y_drug.name
     summary["EVENT"] = x_spldep.name
     summary["ENSEMBL"] = ensembl
     summary["GENE"] = gene
@@ -245,13 +245,13 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
 
 def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
     sigma = spldep.cov()
-    drugs_oi = drug["DRUG_ID"].unique()
+    drugs_oi = drug["ID"].unique()
     results = []
     for drug_oi in drugs_oi:
         print(drug_oi)
 
         # prepare drug target variable
-        y_drug = drug.loc[drug["DRUG_ID"] == drug_oi]
+        y_drug = drug.loc[drug["ID"] == drug_oi]
         y_drug = pd.Series(
             np.log(y_drug["IC50_PUBLISHED"].values),  # log-normalize
             index=y_drug["ARXSPAN_ID"].values,
@@ -276,13 +276,17 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
         # compute adjusted p-values
         res["lr_padj"] = np.nan
         idx = ~res["lr_pvalue"].isnull()
-        res.loc[idx, "lr_padj"] = sm.stats.multipletests(
-            res.loc[idx, "lr_pvalue"], method="fdr_bh"
-        )[1]
+        print(sum(idx))
+        if sum(idx)>0:
+            res.loc[idx, "lr_padj"] = sm.stats.multipletests(
+                res.loc[idx, "lr_pvalue"], method="fdr_bh"
+            )[1]
+        else:
+            res.loc[idx, "lr_padj"] = np.nan
+            
         # save
         results.append(res)
 
     results = pd.concat(results)
-    results["DRUG_ID"] = results["DRUG_ID"].astype("int")  # formatting
 
     return results
