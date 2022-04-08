@@ -141,7 +141,7 @@ def fit_limixmodel(y, X, sigma):
 
     # make summary
     summary = {
-        "ID": np.nan,
+        "ID": "", # needed this to avoid a weird transformation of strings to floats.
         "EVENT": np.nan,
         "ENSEMBL": np.nan,
         "GENE": np.nan,
@@ -229,7 +229,9 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
                 "lr_df",
             ],
         )
+        
     # update
+    summary["ID"] = "" ###########
     summary["ID"] = y_drug.name
     summary["EVENT"] = x_spldep.name
     summary["ENSEMBL"] = ensembl
@@ -239,7 +241,7 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
     summary["spldep_std"] = x_spldep.std()
     summary["growth_mean"] = x_growth_rates.mean().values[0]  # PC1
     summary["growth_std"] = x_growth_rates.std().values[0]  # PC1
-
+    
     return summary
 
 

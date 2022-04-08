@@ -324,16 +324,17 @@ def get_coefs(res, coef_oi, size):
 
 
 def fit_models(gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs, method=METHOD):
+    
     results = Parallel(n_jobs=n_jobs)(
-        delayed(fit_model)(
-            splicing.loc[event],
-            genexpr.loc[ensembl],
-            gene_dependency.loc[gene],
-            n_iterations,
-            method=method,
+            delayed(fit_model)(
+                splicing.loc[event],
+                genexpr.loc[ensembl],
+                gene_dependency.loc[gene],
+                n_iterations,
+                method=method,
+            )
+            for event, ensembl, gene in tqdm(mapping.values)
         )
-        for event, ensembl, gene in tqdm(mapping.values)
-    )
     
     # split results
     summaries = []

@@ -101,7 +101,7 @@ class DrugAssociation:
 
         # log(IC50) ~ SplicingDependency + GrowthRate + Intercept
         ## inferred drug response per drug and event
-        full_est = prep_model_summaries[["DRUG_ID", "EVENT", "ENSEMBL", "GENE"]].copy()
+        full_est = prep_model_summaries[["ID", "EVENT", "ENSEMBL", "GENE"]].copy()
         full_est[prep_splicing_dependency.columns] = np.nan
         full_est[prep_splicing_dependency.columns] = (
             coef_spldep * spldep + coef_gr * gr + coef_intercept
@@ -109,10 +109,10 @@ class DrugAssociation:
         ## estimated drug response per drug
         samples = prep_splicing_dependency.columns
         drug_ests = []
-        for drug_id, drug_df in full_est.groupby(["DRUG_ID"]):
+        for drug_id, drug_df in full_est.groupby(["ID"]):
             # prepare weights for weighted average
             # higher pearson, higher contribution
-            weights = prep_model_summaries.loc[prep_model_summaries["DRUG_ID"]==drug_id]
+            weights = prep_model_summaries.loc[prep_model_summaries["ID"]==drug_id]
             weights = np.clip(weights.set_index("EVENT")["pearson_correlation"],0,1)
             weights = weights / weights.sum()
             
@@ -121,7 +121,7 @@ class DrugAssociation:
             w = weights.fillna(0).values.reshape(-1,1)
             ## (n. events x n.samples)^T dotprod. (n. events x 1) = (n.samples x 1)
             drug_est = np.dot(m.T,w)
-            drug_est = pd.DataFrame({"DRUG_ID": drug_id, "sample": samples, "predicted_ic50": drug_est.ravel()})
+            drug_est = pd.DataFrame({"ID": drug_id, "sample": samples, "predicted_ic50": drug_est.ravel()})
             drug_ests.append(drug_est)
         drug_ests = pd.concat(drug_ests)
         
