@@ -44,7 +44,11 @@ class SplicingDependency:
         splicing = self.splicing_
         genexpr = self.genexpr_
         mapping = self.mapping_
-
+        
+        # drop undetected & uninformative events
+        splicing = splicing.dropna(thresh=2)
+        splicing = splicing.loc[splicing.std(axis=1) != 0]
+        
         # subset
         gene_annot = mapping[["ENSEMBL", "GENE"]].drop_duplicates().dropna()
         common_samples = (
@@ -78,10 +82,6 @@ class SplicingDependency:
         elif self.log_transform:
             print("Transforming TPM into log2(TPM+1)...")
             genexpr = np.log2(genexpr + 1)
-
-        # drop undetected & uninformative events
-        splicing = splicing.dropna(thresh=2)
-        splicing = splicing.loc[splicing.std(axis=1) != 0]
 
         # standardize splicing and gene expression
         splicing_mean = splicing.mean(axis=1).values.reshape(-1, 1)
