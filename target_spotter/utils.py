@@ -52,19 +52,16 @@ def compute_single_splicing_dependency(
     mean = pd.Series(np.mean(y, axis=0), index=samples, name=event)
     median = pd.Series(np.median(y, axis=0), index=samples, name=event)
     std = pd.Series(np.std(y, axis=0), index=samples, name=event)
+    q25 = pd.Series(np.quantile(y, 0.25, axis=0), index=samples, name=event)
+    q75 = pd.Series(np.quantile(y, 0.75, axis=0), index=samples, name=event)
 
-    summary = {"mean": mean, "median": median, "std": std}
+    summary = {"mean": mean, "median": median, "std": std, "q25": q25, "q75": q75}
 
     return summary
 
 
 def compute_splicing_dependency(
-    splicing,
-    genexpr,
-    coefs_event,
-    coefs_gene,
-    coefs_intercept,
-    n_jobs,
+    splicing, genexpr, coefs_event, coefs_gene, coefs_intercept, n_jobs,
 ):
     # prep coefficients
     coefs_event = coefs_event.drop(columns=["GENE"]).set_index(["EVENT", "ENSEMBL"])
@@ -89,14 +86,42 @@ def compute_splicing_dependency(
     spldep_mean = pd.DataFrame([r["mean"] for r in result])
     spldep_median = pd.DataFrame([r["median"] for r in result])
     spldep_std = pd.DataFrame([r["std"] for r in result])
+    spldep_q25 = pd.DataFrame([r["q25"] for r in result])
+    spldep_q75 = pd.DataFrame([r["q75"] for r in result])
 
     splicing_dependency = {
         "mean": spldep_mean,
         "median": spldep_median,
         "std": spldep_std,
+        "q25": spldep_q25,
+        "q75": spldep_q75,
     }
 
     return splicing_dependency
+
+
+def compute_max_harm_score(splicing, splicing_dependency):
+    """
+    Delta PSI = PSI_final - PSI_initial
+    Onco-event (SplDep<0): Max. DeltaPSI = 0 - PSI_initial, or
+    Tumor Suppressor event (SplDep>0): Max. DeltaPSI = 100 - PSI_initial
+    
+    Max. Harm Score = (-1) * SplDep * DeltaPSI
+    """
+    # subset
+    common_samples = set(splicing.columns).intersection(splicing_dependency.columns)
+    common_events = set(splicing.index).intersection(splicing_dependency.index)
+    splicing = splicing.loc[common_events, common_samples].copy()
+    splicing_dependency = splicing_dependency.loc[common_events, common_samples].copy()
+
+    # compute
+    ## the PSI_final will depend on the SplDep sign
+    psi_final = splicing_dependency.copy()
+    psi_final.values[psi_final < 0] = 0  # remove onco-events
+    psi_final.values[psi_final > 0] = 100  # include tumor-suppressor events
+    max_harm = (-1) * splicing_dependency * (psi_final - splicing)
+
+    return max_harm
 
 
 def load_examples(dataset="CCLE"):

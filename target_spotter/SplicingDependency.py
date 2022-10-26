@@ -44,11 +44,11 @@ class SplicingDependency:
         splicing = self.splicing_
         genexpr = self.genexpr_
         mapping = self.mapping_
-        
+
         # drop undetected & uninformative events
         splicing = splicing.dropna(thresh=2)
         splicing = splicing.loc[splicing.std(axis=1) != 0]
-        
+
         # subset
         gene_annot = mapping[["ENSEMBL", "GENE"]].drop_duplicates().dropna()
         common_samples = (
@@ -252,7 +252,24 @@ class SplicingDependency:
         )
         self.splicing_dependency_ = splicing_dependency
 
-        return self.splicing_dependency_["median"]
+        # estimate maximum harm score
+        max_harm_score = {
+            "mean": utils.compute_max_harm_score(
+                self.prep_splicing_, self.splicing_dependency_["mean"]
+            ),
+            "median": utils.compute_max_harm_score(
+                self.prep_splicing_, self.splicing_dependency_["median"]
+            ),
+            "q25": utils.compute_max_harm_score(
+                self.prep_splicing_, self.splicing_dependency_["q25"]
+            ),
+            "q75": utils.compute_max_harm_score(
+                self.prep_splicing_, self.splicing_dependency_["q75"]
+            ),
+        }
+        self.max_harm_score_ = max_harm_score
+
+        return self.splicing_dependency_["mean"], self.max_harm_score_["mean"]
 
 
 class FitFromFiles:
@@ -402,10 +419,10 @@ class PredictFromFiles:
         self.coefs_intercept_ = coefs_intercept
 
     def save(self, estimator):
-        splicing_dependency = estimator.splicing_dependency_
-
         os.makedirs(self.output_dir, exist_ok=True)
-
+        
+        # save splicing dependency
+        splicing_dependency = estimator.splicing_dependency_
         splicing_dependency["mean"].reset_index().to_csv(
             os.path.join(self.output_dir, "mean.tsv.gz"), **SAVE_PARAMS
         )
@@ -415,7 +432,28 @@ class PredictFromFiles:
         splicing_dependency["std"].reset_index().to_csv(
             os.path.join(self.output_dir, "std.tsv.gz"), **SAVE_PARAMS
         )
-
+        splicing_dependency["q25"].reset_index().to_csv(
+            os.path.join(self.output_dir, "q25.tsv.gz"), **SAVE_PARAMS
+        )
+        splicing_dependency["q75"].reset_index().to_csv(
+            os.path.join(self.output_dir, "q75.tsv.gz"), **SAVE_PARAMS
+        )
+        
+        # save max harm scores
+        max_harm_score = estimator.max_harm_score_
+        max_harm_score["mean"].reset_index().to_csv(
+            os.path.join(self.output_dir, "max_harm_score-mean.tsv.gz"), **SAVE_PARAMS
+        )
+        max_harm_score["median"].reset_index().to_csv(
+            os.path.join(self.output_dir, "max_harm_score-median.tsv.gz"), **SAVE_PARAMS
+        )
+        max_harm_score["q25"].reset_index().to_csv(
+            os.path.join(self.output_dir, "max_harm_score-q25.tsv.gz"), **SAVE_PARAMS
+        )
+        max_harm_score["q75"].reset_index().to_csv(
+            os.path.join(self.output_dir, "max_harm_score-q75.tsv.gz"), **SAVE_PARAMS
+        )        
+        
     def run(self):
         print("Loading data...")
         self.load_data()
