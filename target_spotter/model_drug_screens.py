@@ -79,8 +79,9 @@ def get_drug_pcs(drug):
         values="IC50_PUBLISHED",
         aggfunc=np.median,
     )
-    drugmat = drugmat.apply(lambda x: x.fillna(np.median(x.dropna())), axis=1)
     drugmat = np.log(drugmat)
+    drugmat.values[~np.isfinite(np.abs(drugmat))] = np.nan
+    drugmat = drugmat.apply(lambda x: x.fillna(np.median(x.dropna())), axis=1)
     pca = PCA(1)
     pca.fit(drugmat)
     growth_rates = pd.DataFrame(
@@ -259,7 +260,7 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
             index=y_drug["ARXSPAN_ID"].values,
             name=drug_oi,
         )
-
+        
         # run against all events
         res = Parallel(n_jobs=n_jobs)(
             delayed(fit_model)(
