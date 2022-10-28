@@ -44,24 +44,24 @@ def get_summary_stats(df, label):
     return summary_stats
 
 
-def make_ccle_stats(splicing, genexpr, mapping):
+def make_isoform_stats(splicing, genexpr, mapping):
     splicing_stats = pd.DataFrame(get_summary_stats(splicing, "event"))
     genexpr_stats = pd.DataFrame(get_summary_stats(genexpr, "gene"))
 
     # left join
-    ccle_stats = pd.merge(
+    isoform_stats = pd.merge(
         mapping, splicing_stats, how="left", left_on="EVENT", right_index=True
     )
-    ccle_stats = pd.merge(
-        ccle_stats, genexpr_stats, how="left", left_on="ENSEMBL", right_index=True
+    isoform_stats = pd.merge(
+        isoform_stats, genexpr_stats, how="left", left_on="ENSEMBL", right_index=True
     )
 
     # subset
     events_avail = list(splicing_stats.index)
-    to_keep = ccle_stats["EVENT"].isin(events_avail)
-    ccle_stats = ccle_stats.loc[to_keep].copy()
+    to_keep = isoform_stats["EVENT"].isin(events_avail)
+    isoform_stats = isoform_stats.loc[to_keep].copy()
     
-    return ccle_stats
+    return isoform_stats
 
 
 def parse_args():
@@ -82,7 +82,7 @@ def main():
     mapping_file = args.mapping_file
     output_dir = args.output_dir
 
-    ccle_stats = []
+    isoform_stats = []
     for splicing_file in splicing_files:
         print("Loading data from %s..." % splicing_file)
         splicing, genexpr, mapping = load_data(
@@ -90,12 +90,12 @@ def main():
         )
 
         print("Computing CCLE statistics...")
-        ccle_stats_tmp = make_ccle_stats(splicing, genexpr, mapping)
-        ccle_stats.append(ccle_stats_tmp)
+        isoform_stats_tmp = make_isoform_stats(splicing, genexpr, mapping)
+        isoform_stats.append(isoform_stats_tmp)
 
     print("Saving results...")
-    ccle_stats = pd.concat(ccle_stats)
-    ccle_stats.to_csv(os.path.join(output_dir, "ccle_stats.tsv.gz"), **SAVE_PARAMS)
+    isoform_stats = pd.concat(isoform_stats)
+    isoform_stats.to_csv(os.path.join(output_dir, "isoform_stats.tsv.gz"), **SAVE_PARAMS)
 
 
 ##### SCRIPT #####

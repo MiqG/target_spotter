@@ -29,6 +29,7 @@ def parse_args():
     fit_parser.add_argument("--gene_dependency_file", type=str, required=True)
     fit_parser.add_argument("--splicing_file", type=str, required=True)
     fit_parser.add_argument("--genexpr_file", type=str, required=True)
+    fit_parser.add_argument("--isoform_stats_file", type=str, default=None)
     fit_parser.add_argument("--mapping_file", type=str, default=MAPPING_FILE)
     fit_parser.add_argument("--output_dir", type=str, default=FITTED_SPLDEP_DIR)
     fit_parser.add_argument("--normalize_counts", action="store_true")
@@ -40,7 +41,7 @@ def parse_args():
     pred_parser = subparser.add_parser("spldep_predict", help="estimate splicing dependency.")
     pred_parser.add_argument("--splicing_file", type=str, required=True)
     pred_parser.add_argument("--genexpr_file", type=str, required=True)
-    pred_parser.add_argument("--ccle_stats_file", type=str, default=None)
+    pred_parser.add_argument("--isoform_stats_file", type=str, default=None)
     pred_parser.add_argument("--coefs_splicing_file", type=str, default=None)
     pred_parser.add_argument("--coefs_genexpr_file", type=str, default=None)
     pred_parser.add_argument("--coefs_intercept_file", type=str, default=None)
@@ -109,6 +110,7 @@ def main():
             gene_dependency_file=args.gene_dependency_file,
             splicing_file=args.splicing_file,
             genexpr_file=args.genexpr_file,
+            isoform_stats_file=args.isoform_stats_file,
             mapping_file=args.mapping_file,
             output_dir=args.output_dir,
             normalize_counts=args.normalize_counts,
@@ -121,7 +123,7 @@ def main():
         SplicingDependency.PredictFromFiles(
             splicing_file=args.splicing_file,
             genexpr_file=args.genexpr_file,
-            ccle_stats_file=args.ccle_stats_file,
+            isoform_stats_file=args.isoform_stats_file,
             coefs_splicing_file=args.coefs_splicing_file,
             coefs_genexpr_file=args.coefs_genexpr_file,
             coefs_intercept_file=args.coefs_intercept_file,

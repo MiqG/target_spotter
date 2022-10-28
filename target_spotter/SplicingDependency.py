@@ -17,6 +17,7 @@ import os
 import gc
 import utils
 from model_gene_dependency import fit_models
+from make_isoform_stats import make_isoform_stats
 import defaults
 
 MAPPING_FILE = defaults.MAPPING_FILE
@@ -43,6 +44,7 @@ class SplicingDependency:
         gene_dependency = self.gene_dependency_
         splicing = self.splicing_
         genexpr = self.genexpr_
+        isoform_stats = self.isoform_stats_
         mapping = self.mapping_
 
         # drop undetected & uninformative events
@@ -84,24 +86,53 @@ class SplicingDependency:
             genexpr = np.log2(genexpr + 1)
 
         # standardize splicing and gene expression
-        splicing_mean = splicing.mean(axis=1).values.reshape(-1, 1)
-        splicing_std = splicing.std(axis=1).values.reshape(-1, 1)
+        if isoform_stats is None:
+            # compute directly from data
+            isoform_stats = make_isoform_stats(splicing, genexpr, mapping)
+
+        # keep only genes with exons
+        genexpr = genexpr.loc[genexpr.index.isin(isoform_stats["ENSEMBL"])]
+        
+        # get summary stats
+        isoform_stats = isoform_stats.set_index(["EVENT","ENSEMBL"])
+        ## PSI
+        splicing_mean = isoform_stats.loc[
+            (splicing.index, slice(None)), "event_mean"
+        ].values.reshape(-1, 1)
+        splicing_std = isoform_stats.loc[
+            (splicing.index, slice(None)), "event_std"
+        ].values.reshape(-1, 1)
         splicing = (splicing - splicing_mean) / splicing_std
-
-        genexpr_mean = genexpr.mean(axis=1).values.reshape(-1, 1)
-        genexpr_std = genexpr.std(axis=1).values.reshape(-1, 1)
+        ## TPM
+        genexpr_mean = (
+            isoform_stats.loc[(slice(None), genexpr.index), "gene_mean"]
+            .reset_index(["ENSEMBL"])
+            .drop_duplicates()["gene_mean"]
+            .values.reshape(-1, 1)
+        )
+        genexpr_std = (
+            isoform_stats.loc[(slice(None), genexpr.index), "gene_std"]
+            .reset_index(["ENSEMBL"])
+            .drop_duplicates()["gene_std"]
+            .values.reshape(-1, 1)
+        )
         genexpr = (genexpr - genexpr_mean) / genexpr_std
-
+        
         # update attributes
         self.gene_dependency_ = gene_dependency
         self.splicing_ = splicing
         self.genexpr_ = genexpr
+        self.isoform_stats_ = isoform_stats
         self.mapping_ = mapping
 
-    def fit(self, gene_dependency, splicing, genexpr, mapping=None):
+    def fit(self, gene_dependency, splicing, genexpr, isoform_stats=None, mapping=None):
+        """
+        if isoform_stats is None. We compute them from data.
+        """
         self.gene_dependency_ = gene_dependency
         self.splicing_ = splicing
         self.genexpr_ = genexpr
+        self.isoform_stats_ = isoform_stats
         self.mapping_ = mapping
 
         # preprocessing inputs for prediction
@@ -129,7 +160,7 @@ class SplicingDependency:
 
     def _prep_predict(self):
         # unpack attributes
-        ccle_stats = self.ccle_stats_
+        isoform_stats = self.isoform_stats_
         splicing = self.splicing_
         genexpr = self.genexpr_
         coefs_splicing = self.coefs_splicing_
@@ -176,22 +207,22 @@ class SplicingDependency:
 
         # standardize
         ## PSI
-        event_mean = ccle_stats.loc[
+        event_mean = isoform_stats.loc[
             (splicing.index, slice(None)), "event_mean"
         ].values.reshape(-1, 1)
-        event_std = ccle_stats.loc[
+        event_std = isoform_stats.loc[
             (splicing.index, slice(None)), "event_std"
         ].values.reshape(-1, 1)
         splicing = (splicing - event_mean) / event_std
         ## TPM
         gene_mean = (
-            ccle_stats.loc[(slice(None), genexpr.index), "gene_mean"]
+            isoform_stats.loc[(slice(None), genexpr.index), "gene_mean"]
             .reset_index(["ENSEMBL"])
             .drop_duplicates()["gene_mean"]
             .values.reshape(-1, 1)
         )
         gene_std = (
-            ccle_stats.loc[(slice(None), genexpr.index), "gene_std"]
+            isoform_stats.loc[(slice(None), genexpr.index), "gene_std"]
             .reset_index(["ENSEMBL"])
             .drop_duplicates()["gene_std"]
             .values.reshape(-1, 1)
@@ -209,7 +240,7 @@ class SplicingDependency:
         self,
         splicing,
         genexpr,
-        ccle_stats=None,
+        isoform_stats=None,
         coefs_splicing=None,
         coefs_genexpr=None,
         coefs_intercept=None,
@@ -218,15 +249,15 @@ class SplicingDependency:
         ## save inputs as attributes
         self.splicing_ = splicing
         self.genexpr_ = genexpr
-        self.ccle_stats_ = ccle_stats
+        self.isoform_stats_ = isoform_stats
         self.coefs_splicing_ = coefs_splicing
         self.coefs_genexpr_ = coefs_genexpr
         self.coefs_intercept_ = coefs_intercept
 
         ## load defaults
         print("Loading defaults...")
-        if ccle_stats is None:
-            self.ccle_stats_ = pd.read_table(CCLE_STATS_FILE).set_index(
+        if isoform_stats is None:
+            self.isoform_stats_ = pd.read_table(CCLE_STATS_FILE).set_index(
                 ["EVENT", "ENSEMBL"]
             )
         if coefs_splicing is None:
@@ -278,6 +309,7 @@ class FitFromFiles:
         gene_dependency_file,
         splicing_file,
         genexpr_file,
+        isoform_stats_file=None,
         mapping_file=MAPPING_FILE,
         output_dir=FITTED_SPLDEP_DIR,
         normalize_counts=False,
@@ -290,6 +322,7 @@ class FitFromFiles:
         self.gene_dependency_file = gene_dependency_file
         self.splicing_file = splicing_file
         self.genexpr_file = genexpr_file
+        self.isoform_stats_file = isoform_stats_file
         self.mapping_file = mapping_file
 
         # outputs
@@ -306,15 +339,22 @@ class FitFromFiles:
         splicing = pd.read_table(self.splicing_file, index_col=0)
         genexpr = pd.read_table(self.genexpr_file, index_col=0)
         mapping = pd.read_table(self.mapping_file)
-
+        
+        if self.isoform_stats_file is not None:
+            isoform_stats = pd.read_table(self.isoform_stats_file).set_index(["EVENT", "ENSEMBL"])
+        else:
+            isoform_stats = None
+        
         gc.collect()
 
         self.gene_dependency_ = gene_dependency
         self.splicing_ = splicing
         self.genexpr_ = genexpr
+        self.isoform_stats_ = isoform_stats
         self.mapping_ = mapping
 
     def save(self, estimator):
+        isoform_stats = estimator.isoform_stats_
         summaries = estimator.summaries_
         coefs_splicing = estimator.coefs_splicing_
         coefs_genexpr = estimator.coefs_genexpr_
@@ -322,6 +362,9 @@ class FitFromFiles:
 
         os.makedirs(self.output_dir, exist_ok=True)
 
+        isoform_stats.reset_index().to_csv(
+            os.path.join(self.output_dir, "isoform_stats.tsv.gz"), **SAVE_PARAMS
+        )
         summaries.to_csv(
             os.path.join(self.output_dir, "model_summaries.tsv.gz"), **SAVE_PARAMS
         )
@@ -338,7 +381,7 @@ class FitFromFiles:
     def run(self):
         print("Loading data...")
         self.load_data()
-
+        
         print("Fitting models...")
         estimator = SplicingDependency(
             normalize_counts=self.normalize_counts,
@@ -347,7 +390,7 @@ class FitFromFiles:
             n_jobs=self.n_jobs,
         )
         estimator.fit(
-            self.gene_dependency_, self.splicing_, self.genexpr_, self.mapping_
+            self.gene_dependency_, self.splicing_, self.genexpr_, self.isoform_stats_, self.mapping_
         )
 
         print("Saving results to %s ..." % self.output_dir)
@@ -359,7 +402,7 @@ class PredictFromFiles:
         self,
         splicing_file,
         genexpr_file,
-        ccle_stats_file=None,
+        isoform_stats_file=None,
         coefs_splicing_file=None,
         coefs_genexpr_file=None,
         coefs_intercept_file=None,
@@ -372,7 +415,7 @@ class PredictFromFiles:
         # inputs
         self.splicing_file = splicing_file
         self.genexpr_file = genexpr_file
-        self.ccle_stats_file = ccle_stats_file
+        self.isoform_stats_file = isoform_stats_file
         self.coefs_splicing_file = coefs_splicing_file
         self.coefs_genexpr_file = coefs_genexpr_file
         self.coefs_intercept_file = coefs_intercept_file
@@ -393,8 +436,8 @@ class PredictFromFiles:
         common_samples = set(splicing.columns).intersection(genexpr.columns)
 
         # take default files
-        if self.ccle_stats_file is None:
-            self.ccle_stats_file = CCLE_STATS_FILE
+        if self.isoform_stats_file is None:
+            self.isoform_stats_file = CCLE_STATS_FILE
         if self.coefs_splicing_file is None:
             self.coefs_splicing_file = COEFS_SPLICING_FILE
         if self.coefs_genexpr_file is None:
@@ -403,7 +446,7 @@ class PredictFromFiles:
             self.coefs_intercept_file = COEFS_INTERCEPT_FILE
 
         # load coefficients
-        ccle_stats = pd.read_table(self.ccle_stats_file).set_index(["EVENT", "ENSEMBL"])
+        isoform_stats = pd.read_table(self.isoform_stats_file).set_index(["EVENT", "ENSEMBL"])
         coefs_splicing = pd.read_pickle(self.coefs_splicing_file)
         coefs_genexpr = pd.read_pickle(self.coefs_genexpr_file)
         coefs_intercept = pd.read_pickle(self.coefs_intercept_file)
@@ -413,14 +456,14 @@ class PredictFromFiles:
         # update attributes
         self.splicing_ = splicing
         self.genexpr_ = genexpr
-        self.ccle_stats_ = ccle_stats
+        self.isoform_stats_ = isoform_stats
         self.coefs_splicing_ = coefs_splicing
         self.coefs_genexpr_ = coefs_genexpr
         self.coefs_intercept_ = coefs_intercept
 
     def save(self, estimator):
         os.makedirs(self.output_dir, exist_ok=True)
-        
+
         # save splicing dependency
         splicing_dependency = estimator.splicing_dependency_
         splicing_dependency["mean"].reset_index().to_csv(
@@ -438,7 +481,7 @@ class PredictFromFiles:
         splicing_dependency["q75"].reset_index().to_csv(
             os.path.join(self.output_dir, "q75.tsv.gz"), **SAVE_PARAMS
         )
-        
+
         # save max harm scores
         max_harm_score = estimator.max_harm_score_
         max_harm_score["mean"].reset_index().to_csv(
@@ -452,8 +495,8 @@ class PredictFromFiles:
         )
         max_harm_score["q75"].reset_index().to_csv(
             os.path.join(self.output_dir, "max_harm_score-q75.tsv.gz"), **SAVE_PARAMS
-        )        
-        
+        )
+
     def run(self):
         print("Loading data...")
         self.load_data()
@@ -467,7 +510,7 @@ class PredictFromFiles:
         _ = estimator.predict(
             self.splicing_,
             self.genexpr_,
-            self.ccle_stats_,
+            self.isoform_stats_,
             self.coefs_splicing_,
             self.coefs_genexpr_,
             self.coefs_intercept_,
