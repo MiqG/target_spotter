@@ -29,7 +29,10 @@ In brackets, versions of packages used to develop `target_spotter`.
 - `streamlit`
 
 ### maintenance
-- `limix` (install from [here](https://github.com/limix/limix))
+- `limix` (install from [here](https://github.com/limix/limix)) with:
+```shell
+pip install -e git+git://github.com/limix/limix.git@master#egg=limix
+```
 
 
 ## Installation
