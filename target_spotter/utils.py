@@ -116,11 +116,13 @@ def compute_max_harm_score(splicing, splicing_dependency):
 
     # compute
     ## the PSI_final will depend on the SplDep sign
-    psi_final = splicing_dependency.copy()
-    psi_final.values[psi_final < 0] = 0  # remove onco-events
-    psi_final.values[psi_final > 0] = 100  # include tumor-suppressor events
-    max_harm = (-1) * splicing_dependency * (psi_final - splicing)
-
+    psi_final = pd.DataFrame(
+        np.nan, index=splicing_dependency.index, columns=splicing_dependency.columns
+    )
+    psi_final.values[splicing_dependency < 0] = 0  # remove onco-events
+    psi_final.values[splicing_dependency > 0] = 100  # include tumor-suppressor events
+    max_harm = (-1) * (psi_final - splicing) * splicing_dependency
+    
     return max_harm
 
 

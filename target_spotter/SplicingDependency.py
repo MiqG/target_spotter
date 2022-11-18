@@ -286,16 +286,16 @@ class SplicingDependency:
         # estimate maximum harm score
         max_harm_score = {
             "mean": utils.compute_max_harm_score(
-                self.prep_splicing_, self.splicing_dependency_["mean"]
+                self.splicing_, self.splicing_dependency_["mean"]
             ),
             "median": utils.compute_max_harm_score(
-                self.prep_splicing_, self.splicing_dependency_["median"]
+                self.splicing_, self.splicing_dependency_["median"]
             ),
             "q25": utils.compute_max_harm_score(
-                self.prep_splicing_, self.splicing_dependency_["q25"]
+                self.splicing_, self.splicing_dependency_["q25"]
             ),
             "q75": utils.compute_max_harm_score(
-                self.prep_splicing_, self.splicing_dependency_["q75"]
+                self.splicing_, self.splicing_dependency_["q75"]
             ),
         }
         self.max_harm_score_ = max_harm_score
