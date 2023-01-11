@@ -160,7 +160,7 @@ class DrugAssociation:
                 self.fitted_growth_rates_,
                 self.fitted_spldep_,
             )
-
+        
         ## preprocessing inputs for prediction
         print("Preprocessing inputs...")
         self._preprocess()

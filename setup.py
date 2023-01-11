@@ -1,7 +1,8 @@
 from setuptools import setup
+from pathlib import Path
 
-with open('README.md') as f:
-    long_description = f.read()
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="target_spotter",

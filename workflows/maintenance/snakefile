@@ -15,7 +15,7 @@ PREP_DIR = os.path.join(DATA_DIR,'prep')
 FITTED_DIR = os.path.join(DATA_DIR,'fitted')
 REFERENCES_DIR = os.path.join(DATA_DIR,'references')
 TS_DIR = ROOT
-EVENT_TYPES = ['EX','ALTA','ALTD','INT']
+EVENT_TYPES = ['EX']
 
 CANCER_TYPES = [
     'BRCA',
@@ -40,86 +40,34 @@ CANCER_TYPES = [
 ##### RULES #####
 rule all:
     input:       
-        # write selected models
-        os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt'),
-        
-        # combine selected models
-        os.path.join(FITTED_DIR,'splicing_dependency','selected'),
+        # filter model parameters to consider only selected models
+        os.path.join(FITTED_DIR,'splicing_dependency','coefs_splicing.pickle.gz'),
+        os.path.join(FITTED_DIR,'splicing_dependency','coefs_genexpr.pickle.gz'),
+        os.path.join(FITTED_DIR,'splicing_dependency','coefs_intercept.pickle.gz'),
         
         # one-sample diff fitting
         expand(os.path.join(FITTED_DIR,'onesample_diff','TCGA','{cancer}'), cancer=["KICH","UCEC"])#CANCER_TYPES)
         
-        
-# rule model_gene_dependency:
-#     input:
-#         splicing_file = os.path.join(PREP_DIR,'event_psi','CCLE-{event_type}.tsv.gz'),
-#         genexpr_file = os.path.join(PREP_DIR,'genexpr_tpm','CCLE.tsv.gz'),
-#         gene_dependency_file = os.path.join(PREP_DIR,'demeter2','CCLE.tsv.gz'),
-#         mapping_file = os.path.join(REFERENCES_DIR,'mapping.tsv.gz')
-#     output:
-#         directory(os.path.join(FITTED_DIR,'splicing_dependency','{event_type}'))
-#     threads: 20
-#     resources:
-#         runtime = 604800, # seconds = 168h = 7 days
-#         memory = 30
-#     params:
-#         script_dir = TS_DIR,
-#         n_iterations = 500
-#     shell:
-#         """
-#         python {params.script_dir}/target_spotter spldep_fit \
-#                     --gene_dependency_file={input.gene_dependency_file} \
-#                     --splicing_file={input.splicing_file} \
-#                     --genexpr_file={input.genexpr_file} \
-#                     --mapping_file={input.mapping_file} \
-#                     --output_dir={output} \
-#                     --n_iterations={params.n_iterations} \
-#                     --n_jobs={threads}
-#         """
-        
-        
-rule list_selected_models:
+                
+rule filter_selected_models:
     input:
-        [os.path.join(FITTED_DIR,'splicing_dependency','{event_type}','model_summaries.tsv.gz').format(event_type=e) for e in EVENT_TYPES]
+        fitted_models_dir = [os.path.join(FITTED_DIR,'splicing_dependency','models_gene_dependency-{event_type}').format(event_type=e) for e in EVENT_TYPES],
+        selected_models = os.path.join(FITTED_DIR,'splicing_dependency','selected_models-EX.txt')
     output:
-        os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt')
-    params:
-        thresh_lr_pvalue = 0.025,
-        thresh_corr = 0.2
+        coefs_splicing = os.path.join(FITTED_DIR,'splicing_dependency','coefs_splicing.pickle.gz'),
+        coefs_genexpr = os.path.join(FITTED_DIR,'splicing_dependency','coefs_genexpr.pickle.gz'),
+        coefs_intercept = os.path.join(FITTED_DIR,'splicing_dependency','coefs_intercept.pickle.gz')
     run:
         import os
         import pandas as pd
         
-        selected_models = []
-        for fin in input:
-            event_type = os.path.basename(os.path.dirname(fin))
-            models = pd.read_table(fin)
-            models = models.loc[
-                (models['lr_pvalue']<params.thresh_lr_pvalue) &
-                (models['pearson_correlation_mean']>params.thresh_corr)
-            ].copy()
-            selected_models.append(models['EVENT'].to_list())
-        selected_models = sum(selected_models,[])
-        
-        with open(output[0], 'w') as fout:
-            for event in selected_models:
-                fout.write("%s\n" % event)
-                
-                
-rule combine_selected_models:
-    input:
-        fitted_models_dir = [os.path.join(FITTED_DIR,'splicing_dependency','{event_type}').format(event_type=e) for e in EVENT_TYPES],
-        selected_models = os.path.join(FITTED_DIR,'splicing_dependency','selected_models.txt')
-    output:
-        directory(os.path.join(FITTED_DIR,'splicing_dependency','selected'))
-    run:
-        import os
-        import pandas as pd
-        
+        # load selected models
         selected_models = pd.read_table(input.selected_models, header=None)[0].to_list()
         coefs_splicings = []
         coefs_genexprs = []
         coefs_intercepts = []
+        
+        # filter raw coefficients
         for d in input.fitted_models_dir:
             coefs_splicing = pd.read_pickle(os.path.join(d,'coefs_splicing.pickle.gz'))
             coefs_genexpr = pd.read_pickle(os.path.join(d,'coefs_genexpr.pickle.gz'))
@@ -139,11 +87,12 @@ rule combine_selected_models:
         coefs_genexprs = pd.concat(coefs_genexprs)
         coefs_intercepts = pd.concat(coefs_intercepts)
         
-        os.makedirs(output[0])
-        coefs_splicings.to_pickle(os.path.join(output[0],'coefs_splicing.pickle.gz'))
-        coefs_genexprs.to_pickle(os.path.join(output[0],'coefs_genexpr.pickle.gz'))
-        coefs_intercepts.to_pickle(os.path.join(output[0],'coefs_intercept.pickle.gz'))
+        # save
+        coefs_splicings.to_pickle(output.coefs_splicing)
+        coefs_genexprs.to_pickle(output.coefs_genexpr)
+        coefs_intercepts.to_pickle(output.coefs_intercept)
         
+        print("Done!")
         
         
 rule fit_onesample_diff:
