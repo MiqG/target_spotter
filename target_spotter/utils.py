@@ -38,16 +38,15 @@ def count_to_tpm(mrna_count, gene_lengths=None):
 def compute_single_splicing_dependency(
     b_event, b_gene, b_intercept, x_splicing, x_genexpr
 ):
-
     samples = x_splicing.index
     event = x_splicing.name
-
+    
     PSI = x_splicing.values.reshape(1, -1)
     TPM = x_genexpr.values.reshape(1, -1)
-
+    
     # compute
     y = b_intercept + b_event * PSI + b_gene * TPM
-
+    
     # summarize
     mean = pd.Series(np.mean(y, axis=0), index=samples, name=event)
     median = pd.Series(np.median(y, axis=0), index=samples, name=event)

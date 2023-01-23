@@ -78,7 +78,7 @@ class SplicingDependency:
         # transform genexpr from counts to TPM?
         if self.normalize_counts:
             print("Normalizing counts to TPM...")
-            genexpr = utils.count_to_tpm(genexpr)
+            genexpr = utils.count_to_tpm(genexpr)  # log-transformed output
 
         # log-transform TPMs?
         elif self.log_transform:
@@ -86,38 +86,40 @@ class SplicingDependency:
             genexpr = np.log2(genexpr + 1)
 
         # standardize splicing and gene expression
+        print("Standardizing data...")
         if isoform_stats is None:
+            print("Computing isoform stats from dataset...")
             # compute directly from data
             isoform_stats = make_isoform_stats(splicing, genexpr, mapping)
 
         # keep only genes with exons
         genexpr = genexpr.loc[genexpr.index.isin(isoform_stats["ENSEMBL"])]
-        
+
         # get summary stats
-        isoform_stats = isoform_stats.set_index(["EVENT","ENSEMBL"])
+        isoform_stats = isoform_stats.set_index(["EVENT", "ENSEMBL"])
         ## PSI
-        splicing_mean = isoform_stats.loc[
-            (splicing.index, slice(None)), "event_mean"
+        splicing_mean = isoform_stats.droplevel("ENSEMBL")["event_mean"][
+            splicing.index
         ].values.reshape(-1, 1)
-        splicing_std = isoform_stats.loc[
-            (splicing.index, slice(None)), "event_std"
+        splicing_std = isoform_stats.droplevel("ENSEMBL")["event_std"][
+            splicing.index
         ].values.reshape(-1, 1)
         splicing = (splicing - splicing_mean) / splicing_std
         ## TPM
         genexpr_mean = (
-            isoform_stats.loc[(slice(None), genexpr.index), "gene_mean"]
-            .reset_index(["ENSEMBL"])
-            .drop_duplicates()["gene_mean"]
-            .values.reshape(-1, 1)
+            isoform_stats.droplevel("EVENT")
+            .reset_index("ENSEMBL")[["ENSEMBL", "gene_mean"]]
+            .drop_duplicates()
+            .set_index("ENSEMBL")["gene_mean"]
         )
         genexpr_std = (
-            isoform_stats.loc[(slice(None), genexpr.index), "gene_std"]
-            .reset_index(["ENSEMBL"])
-            .drop_duplicates()["gene_std"]
-            .values.reshape(-1, 1)
+            isoform_stats.droplevel("EVENT")
+            .reset_index("ENSEMBL")[["ENSEMBL", "gene_std"]]
+            .drop_duplicates()
+            .set_index("ENSEMBL")["gene_std"]
         )
         genexpr = (genexpr - genexpr_mean) / genexpr_std
-        
+
         # update attributes
         self.gene_dependency_ = gene_dependency
         self.splicing_ = splicing
@@ -200,33 +202,38 @@ class SplicingDependency:
         # transform genexpr from counts to TPM
         if self.normalize_counts:
             print("Normalizing counts to TPM...")
-            genexpr = utils.count_to_tpm(genexpr)
+            genexpr = utils.count_to_tpm(genexpr)  # log-transformed output
         elif self.log_transform:
             print("Transforming TPM into log2(TPM+1)...")
             genexpr = np.log2(genexpr + 1)
 
         # standardize
+        print("Standardizing data...")
         ## PSI
-        event_mean = isoform_stats.loc[
-            (splicing.index, slice(None)), "event_mean"
+        event_mean = isoform_stats.droplevel("ENSEMBL")["event_mean"][
+            splicing.index
         ].values.reshape(-1, 1)
-        event_std = isoform_stats.loc[
-            (splicing.index, slice(None)), "event_std"
+        event_std = isoform_stats.droplevel("ENSEMBL")["event_std"][
+            splicing.index
         ].values.reshape(-1, 1)
         splicing = (splicing - event_mean) / event_std
         ## TPM
+        ### clean up
         gene_mean = (
-            isoform_stats.loc[(slice(None), genexpr.index), "gene_mean"]
-            .reset_index(["ENSEMBL"])
-            .drop_duplicates()["gene_mean"]
-            .values.reshape(-1, 1)
+            isoform_stats.droplevel("EVENT")
+            .reset_index("ENSEMBL")[["ENSEMBL", "gene_mean"]]
+            .drop_duplicates()
+            .set_index("ENSEMBL")["gene_mean"]
         )
         gene_std = (
-            isoform_stats.loc[(slice(None), genexpr.index), "gene_std"]
-            .reset_index(["ENSEMBL"])
-            .drop_duplicates()["gene_std"]
-            .values.reshape(-1, 1)
+            isoform_stats.droplevel("EVENT")
+            .reset_index("ENSEMBL")[["ENSEMBL", "gene_std"]]
+            .drop_duplicates()
+            .set_index("ENSEMBL")["gene_std"]
         )
+        ### subset
+        gene_mean = gene_mean[genexpr.index].values.reshape(-1, 1)
+        gene_std = gene_std[genexpr.index].values.reshape(-1, 1)
         genexpr = (genexpr - gene_mean) / gene_std
 
         # update attributes
@@ -339,12 +346,14 @@ class FitFromFiles:
         splicing = pd.read_table(self.splicing_file, index_col=0)
         genexpr = pd.read_table(self.genexpr_file, index_col=0)
         mapping = pd.read_table(self.mapping_file)
-        
+
         if self.isoform_stats_file is not None:
-            isoform_stats = pd.read_table(self.isoform_stats_file).set_index(["EVENT", "ENSEMBL"])
+            isoform_stats = pd.read_table(self.isoform_stats_file).set_index(
+                ["EVENT", "ENSEMBL"]
+            )
         else:
             isoform_stats = None
-        
+
         gc.collect()
 
         self.gene_dependency_ = gene_dependency
@@ -381,7 +390,7 @@ class FitFromFiles:
     def run(self):
         print("Loading data...")
         self.load_data()
-        
+
         print("Fitting models...")
         estimator = SplicingDependency(
             normalize_counts=self.normalize_counts,
@@ -390,7 +399,11 @@ class FitFromFiles:
             n_jobs=self.n_jobs,
         )
         estimator.fit(
-            self.gene_dependency_, self.splicing_, self.genexpr_, self.isoform_stats_, self.mapping_
+            self.gene_dependency_,
+            self.splicing_,
+            self.genexpr_,
+            self.isoform_stats_,
+            self.mapping_,
         )
 
         print("Saving results to %s ..." % self.output_dir)
@@ -446,7 +459,9 @@ class PredictFromFiles:
             self.coefs_intercept_file = COEFS_INTERCEPT_FILE
 
         # load coefficients
-        isoform_stats = pd.read_table(self.isoform_stats_file).set_index(["EVENT", "ENSEMBL"])
+        isoform_stats = pd.read_table(self.isoform_stats_file).set_index(
+            ["EVENT", "ENSEMBL"]
+        )
         coefs_splicing = pd.read_pickle(self.coefs_splicing_file)
         coefs_genexpr = pd.read_pickle(self.coefs_genexpr_file)
         coefs_intercept = pd.read_pickle(self.coefs_intercept_file)
