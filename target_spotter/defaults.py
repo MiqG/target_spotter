@@ -16,6 +16,7 @@ MAPPING_FILE = os.path.join(REFERENCES_DIR, "mapping.tsv.gz")
 GENE_LENGTHS_FILE = os.path.join(REFERENCES_DIR, "gene_lengths.tsv")
 CCLE_STATS_FILE = os.path.join(REFERENCES_DIR, "ccle_stats.tsv.gz")
 CCLE_PCA_FILE = os.path.join(REFERENCES_DIR, "ccle_pca.pickle.gz")
+INFO_DRUGS_FILE = os.path.join(REFERENCES_DIR,"info_drugs.tsv.gz")
 
 # coefficients modeling gene dependency
 COEFS_SPLICING_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_splicing.pickle.gz")
