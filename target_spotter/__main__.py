@@ -49,27 +49,6 @@ def parse_args():
     pred_parser.add_argument("--log_transform", action="store_true")
     pred_parser.add_argument("--n_jobs", type=int, default=1)
 
-    # OneSampleDiff
-    ## target_spotter onediff_fit
-    fit_parser = subparser.add_parser("onediff_fit", help="fit models of splicing dependency.")
-    fit_parser.add_argument("--data_file", type=str, required=True)
-    fit_parser.add_argument("--metadata_file", type=str, required=True)
-    fit_parser.add_argument("--sample_col", type=str, required=True)
-    fit_parser.add_argument("--comparison_col", type=str, required=True)
-    fit_parser.add_argument("--condition_oi", type=str, required=True)
-    fit_parser.add_argument("--condition_ref", type=str, required=True)
-    fit_parser.add_argument("--output_dir", type=str, default=FITTED_ONEDIFF_DIR)
-    fit_parser.add_argument("--n_jobs", type=int, default=1)
-
-    ## target_spotter onediff_predict
-    pred_parser = subparser.add_parser("onediff_predict", help="estimate splicing dependency.")
-    pred_parser.add_argument("--data_file", type=str, required=True)
-    pred_parser.add_argument("--median_refs_file", type=str, default=None)
-    pred_parser.add_argument("--population_deltas_file", type=str, default=None)
-    pred_parser.add_argument("--output_dir", type=str, default="one_sample_diff_analysis")
-    pred_parser.add_argument("--cancer_type", type=str, default=None)
-    pred_parser.add_argument("--n_jobs", type=int, default=1)
-
     ## target_spotter drugassoc_fit
     fit_parser = subparser.add_parser("drugassoc_fit", help="estimate splicing dependency.")
     fit_parser.add_argument("--drug_response_file", type=str, required=True)
@@ -124,28 +103,6 @@ def main():
             output_dir=args.output_dir,
             normalize_counts=args.normalize_counts,
             log_transform=args.log_transform,
-            n_jobs=args.n_jobs,
-        ).run()
-
-    elif args.cmd == "onediff_fit":
-        OneSampleDiff.FitFromFiles(
-            data_file=args.data_file,
-            metadata_file=args.metadata_file,
-            sample_col=args.sample_col,
-            comparison_col=args.comparison_col,
-            condition_oi=args.condition_oi,
-            condition_ref=args.condition_ref,
-            output_dir=args.output_dir,
-            n_jobs=args.n_jobs,
-        ).run()
-
-    elif args.cmd == "onediff_predict":
-        OneSampleDiff.PredictFromFiles(
-            data_file=args.data_file,
-            median_refs_file=args.median_refs_file,
-            population_deltas_file=args.population_deltas_file,
-            output_dir=args.output_dir,
-            cancer_type=args.cancer_type,
             n_jobs=args.n_jobs,
         ).run()
 
