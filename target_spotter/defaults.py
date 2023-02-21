@@ -6,7 +6,6 @@ PREP_DIR = os.path.join(DATA_DIR, "prep")
 REFERENCES_DIR = os.path.join(DATA_DIR, "references")
 EXAMPLES_DIR = os.path.join(DATA_DIR, "examples")
 FITTED_DIR = os.path.join(DATA_DIR, "fitted")
-FITTED_ONEDIFF_DIR = os.path.join(FITTED_DIR, "onesample_diff")
 FITTED_SPLDEP_DIR = os.path.join(FITTED_DIR, "splicing_dependency")
 FITTED_DRUGASSOC_DIR = os.path.join(FITTED_DIR, "drug_association")
 RESULTS_DIR = "results"
@@ -52,19 +51,3 @@ EXAMPLE_FILES = {
     }
 }
 
-# TCGA
-## one-sample differential analyses
-TCGA_MEDIAN_REFS_FILES = {
-    "KICH": os.path.join(FITTED_ONEDIFF_DIR, "TCGA", "KICH", "median_refs.tsv.gz"),
-    "UCEC": os.path.join(FITTED_ONEDIFF_DIR, "TCGA", "UCEC", "median_refs.tsv.gz")
-}
-
-TCGA_POPULATION_DELTAS_FILES = {
-    "KICH": os.path.join(
-        FITTED_ONEDIFF_DIR, "TCGA", "KICH", "population_deltas.pickle.gz"
-    ),
-    "UCEC": os.path.join(
-        FITTED_ONEDIFF_DIR, "TCGA", "UCEC", "population_deltas.pickle.gz"
-    )
-}
-##
