@@ -24,9 +24,18 @@ COEFS_GENEXPR_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_genexpr.pickle.gz")
 COEFS_INTERCEPT_FILE = os.path.join(FITTED_SPLDEP_DIR, "coefs_intercept.pickle.gz")
 
 # default outputs drug - splicing dependency associations
-MODEL_SUMMARIES_FILE = os.path.join(FITTED_DRUGASSOC_DIR, "model_summaries.tsv.gz")
-FITTED_GROWTH_RATES_FILE = os.path.join(FITTED_DRUGASSOC_DIR, "growth_rates.tsv.gz")
-FITTED_SPLDEP_FILE = os.path.join(FITTED_DRUGASSOC_DIR, "fitted_splicing_dependency.tsv.gz")
+MODEL_SUMMARIES_FILES = {
+    "GDSC1": os.path.join(FITTED_DRUGASSOC_DIR, "models_drug_response-GDSC1-EX", "model_summaries.tsv.gz"),
+    "GDSC2": os.path.join(FITTED_DRUGASSOC_DIR, "models_drug_response-GDSC2-EX", "model_summaries.tsv.gz")
+}
+FITTED_GROWTH_RATES_FILES = {
+    "GDSC1": os.path.join(FITTED_DRUGASSOC_DIR, "models_drug_response-GDSC1-EX", "growth_rates.tsv.gz"),
+    "GDSC2": os.path.join(FITTED_DRUGASSOC_DIR, "models_drug_response-GDSC2-EX", "growth_rates.tsv.gz")
+}
+FITTED_SPLDEP_FILES = {
+    "GDSC1": os.path.join(FITTED_DRUGASSOC_DIR, "models_drug_response-GDSC1-EX", "fitted_splicing_dependency.tsv.gz"),
+    "GDSC2": os.path.join(FITTED_DRUGASSOC_DIR, "models_drug_response-GDSC2-EX", "fitted_splicing_dependency.tsv.gz")
+}
 
 # app
 APP_SCRIPT = os.path.join(ROOT, "target_spotter", "app.py")

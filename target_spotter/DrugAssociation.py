@@ -16,10 +16,9 @@ from sklearn.decomposition import PCA
 from model_drug_screens import fit_models, get_drug_pcs, infer_growth_rates
 
 MAPPING_FILE = defaults.MAPPING_FILE
-FITTED_DRUGASSOC_DIR = defaults.FITTED_DRUGASSOC_DIR
-MODEL_SUMMARIES_FILE = defaults.MODEL_SUMMARIES_FILE
-FITTED_GROWTH_RATES_FILE = defaults.FITTED_GROWTH_RATES_FILE
-FITTED_SPLDEP_FILE = defaults.FITTED_SPLDEP_FILE
+MODEL_SUMMARIES_FILES = defaults.MODEL_SUMMARIES_FILES
+FITTED_GROWTH_RATES_FILES = defaults.FITTED_GROWTH_RATES_FILES
+FITTED_SPLDEP_FILES = defaults.FITTED_SPLDEP_FILES
 SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 
 #### FUNCTIONS ####
@@ -134,6 +133,7 @@ class DrugAssociation:
         model_summaries=None,
         fitted_growth_rates=None,
         fitted_spldep=None,
+        dataset="GDSC1"
     ):
         # prepare
         ## save inputs as attributes
@@ -142,18 +142,19 @@ class DrugAssociation:
         self.model_summaries_ = model_summaries
         self.fitted_growth_rates_ = fitted_growth_rates
         self.fitted_spldep_ = fitted_spldep
+        self.dataset_ = dataset
 
         ## load defaults
         print("Loading defaults...")
         if self.model_summaries_ is None:
-            self.model_summaries_ = pd.read_table(MODEL_SUMMARIES_FILE)
+            self.model_summaries_ = pd.read_table(MODEL_SUMMARIES_FILES[self.dataset_])
         if self.growth_rates_ is None:
             if self.fitted_growth_rates_ is None:
                 self.fitted_growth_rates_ = pd.read_table(
-                    FITTED_GROWTH_RATES_FILE, index_col=0
+                    FITTED_GROWTH_RATES_FILES[self.dataset_], index_col=0
                 )
             if self.fitted_spldep_ is None:
-                self.fitted_spldep_ = pd.read_table(FITTED_SPLDEP_FILE, index_col=0)
+                self.fitted_spldep_ = pd.read_table(FITTED_SPLDEP_FILES[self.dataset_], index_col=0)
 
             self.growth_rates_ = infer_growth_rates(
                 self.splicing_dependency_,
@@ -172,6 +173,10 @@ class DrugAssociation:
             self.prep_growth_rates_,
             self.prep_model_summaries_,
         )
+        
+        drug_estimates.insert(loc=0, column="dataset", value=self.dataset_)
+        full_estimates.insert(loc=0, column="dataset", value=self.dataset_)
+        
         self.drug_estimates_ = drug_estimates
         self.full_estimates_ = full_estimates
 
@@ -186,7 +191,7 @@ class FitFromFiles:
         growth_rates_file=None,
         mapping_file=MAPPING_FILE,
         selected_models_file=None,
-        output_dir=FITTED_DRUGASSOC_DIR,
+        output_dir="fitted_drug_associations",
         n_jobs=None,
     ):
 
@@ -295,6 +300,7 @@ class PredictFromFiles:
         model_summaries_file=None,
         fitted_growth_rates_file=None,
         fitted_spldep_file=None,
+        dataset="GDSC1",
         output_dir="drug_association",
     ):
         # inputs
@@ -303,6 +309,7 @@ class PredictFromFiles:
         self.model_summaries_file = model_summaries_file
         self.fitted_growth_rates_file = fitted_growth_rates_file
         self.fitted_spldep_file = fitted_spldep_file
+        self.dataset_ = dataset
 
         # outputs
         self.output_dir = output_dir
@@ -310,20 +317,20 @@ class PredictFromFiles:
     def load_data(self):
         # prep defaults
         if self.model_summaries_file is None:
-            self.model_summaries_file = MODEL_SUMMARIES_FILE
+            self.model_summaries_file = MODEL_SUMMARIES_FILES[self.dataset_]
         if self.fitted_growth_rates_file is None:
-            self.fitted_growth_rates_file = FITTED_GROWTH_RATES_FILE
+            self.fitted_growth_rates_file = FITTED_GROWTH_RATES_FILES[self.dataset_]
         if self.fitted_spldep_file is None:
-            self.fitted_spldep_file = FITTED_SPLDEP_FILE
+            self.fitted_spldep_file = FITTED_SPLDEP_FILES[self.dataset_]
 
         # read
         splicing_dependency = pd.read_table(self.splicing_dependency_file, index_col=0)
         model_summaries = pd.read_table(self.model_summaries_file)
         if self.growth_rates_file is None:
             self.fitted_growth_rates_ = pd.read_table(
-                FITTED_GROWTH_RATES_FILE, index_col=0
+                FITTED_GROWTH_RATES_FILES[self.dataset_], index_col=0
             )
-            self.fitted_spldep_ = pd.read_table(FITTED_SPLDEP_FILE, index_col=0)
+            self.fitted_spldep_ = pd.read_table(FITTED_SPLDEP_FILES[self.dataset_], index_col=0)
             growth_rates = infer_growth_rates(
                 splicing_dependency, self.fitted_growth_rates_, self.fitted_spldep_
             )
@@ -364,8 +371,7 @@ class PredictFromFiles:
         print("Estimating splicing dependencies...")
         estimator = DrugAssociation()
         _ = estimator.predict(
-            self.splicing_dependency_, self.growth_rates_, self.model_summaries_
+            self.splicing_dependency_, self.growth_rates_, self.model_summaries_, dataset=self.dataset_
         )
-
         print("Saving results to %s ..." % self.output_dir)
         self.save(estimator)
