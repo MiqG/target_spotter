@@ -17,7 +17,9 @@ setup(
         "scikit-learn",
         "joblib",
         "tqdm",
-        "statsmodels"
+        "statsmodels",
+        "glimix-core",
+        "numpy-sugar"
     ],
     author="Miquel Anglada Girotto",
     author_email="miquel.anglada@crg.eu",

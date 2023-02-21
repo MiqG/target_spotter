@@ -9,7 +9,6 @@ import os
 import argparse
 import defaults, SplicingDependency, OneSampleDiff, DrugAssociation
 
-APP_SCRIPT = defaults.APP_SCRIPT
 MAPPING_FILE = defaults.MAPPING_FILE
 FITTED_SPLDEP_DIR = defaults.FITTED_SPLDEP_DIR
 FITTED_ONEDIFF_DIR = defaults.FITTED_ONEDIFF_DIR
@@ -89,11 +88,6 @@ def parse_args():
     pred_parser.add_argument("--fitted_growth_rates_file", type=str, default=None)
     pred_parser.add_argument("--fitted_spldep_file", type=str, default=None)
     pred_parser.add_argument("--output_dir", type=str, default="drug_association")
-
-    # target_spotter app
-    app_parser = subparser.add_parser(
-        "app", help="Explores splicing dependency through a web app."
-    )
 
     # get arguments
     args = parser.parse_args()
@@ -175,10 +169,6 @@ def main():
             fitted_spldep_file=args.fitted_spldep_file,
             output_dir=args.output_dir,
         ).run()
-
-    elif args.cmd == "app":
-        os.system("streamlit run %s" % APP_SCRIPT)
-
 
 ##### SCRIPT #####
 if __name__ == "__main__":
