@@ -24,8 +24,8 @@ setup(
     author="Miquel Anglada Girotto",
     author_email="miquel.anglada@crg.eu",
     description="Systematic prioritization of splicing targets to treat cancer.",
-    url="https://github.com/CRG-CNAG/target_spotter",
-    project_urls={"Issues": "https://github.com/CRG-CNAG/target_spotter/issues"},
+    url="https://github.com/MiqG/target_spotter",
+    project_urls={"Issues": "https://github.com/MiqG/target_spotter/issues"},
     long_description=long_description,
     long_description_content_type='text/markdown'
 )
