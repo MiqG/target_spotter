@@ -66,6 +66,7 @@ def parse_args():
     pred_parser.add_argument("--model_summaries_file", type=str, default=None)
     pred_parser.add_argument("--fitted_growth_rates_file", type=str, default=None)
     pred_parser.add_argument("--fitted_spldep_file", type=str, default=None)
+    pred_parser.add_argument("--dataset", type=str, default="GDSC1")
     pred_parser.add_argument("--output_dir", type=str, default="drug_association")
 
     # get arguments
@@ -124,6 +125,7 @@ def main():
             model_summaries_file=args.model_summaries_file,
             fitted_growth_rates_file=args.fitted_growth_rates_file,
             fitted_spldep_file=args.fitted_spldep_file,
+            dataset=args.dataset,
             output_dir=args.output_dir,
         ).run()
 

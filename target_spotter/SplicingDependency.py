@@ -30,6 +30,75 @@ SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 
 #### FUNCTIONS ####
 class SplicingDependency:
+    r"""
+    Class to perform splicing dependency analysis. It uses a fitted ensemble of linear models associating 
+    gene expression and exon inclusion to Demeter2 gene dependencies and allows making predictions.
+    
+    Parameters
+    ----------
+    normalize_counts : bool, default=False
+        Whether to normalize or not the gene expression table. Set to "True" if you are providing 
+        gene expression counts rather than gene expression transcripts per million (TPM). Then,
+        gene expression counts will be converted to log-transformed TPMs.
+        
+    log_transform : bool, default=False
+        Whether to log-transform or not the gene expression table. If "True", it will compute
+        log(X+1) to the gene expression table. Set to "True" if you are providing gene expression
+        in transcripts per million.
+    
+    n_iterations : int, default=100
+        Number of training-test split and fitting iterations to run during training for each linear model.
+        
+    n_jobs : int, default=None
+        Number of available cores to use. By default it will use all available cores ("None").
+    
+    Attributes
+    ----------
+    coefs_genexpr_ : pd.DataFrame of shape (n_exons, n_iterations)
+        Fitted coefficients for gene expression term across training iterations.
+    
+    coefs_intercept_ : pd.DataFrame of shape (n_exons, n_iterations)
+        Fitted coefficients for intercept term across training iterations.
+    
+    coefs_splicing_ : pd.DataFrame of shape (n_exons, n_iterations)
+        Fitted coefficients for exon inclusion term across training iterations.
+    
+    isoform_stats_ : pd.Dataframe of shape (n_genes, 11)
+        Summary stats for each exon and gene across CCLE cell lines used to normalize the input tables
+        with respect to the dataset used for training.
+
+    splicing_ : pd.DataFrame of shape (n_exons, n_samples)
+        Inputed exon inclusion table.
+    
+    genexpr_ : pd.DataFrame of shape (n_genes, n_samples)
+        Inputed gene expression table.
+
+    prep_splicing_ : pd.DataFrame of shape (n_exons, n_samples)
+        Preprocessed exon inclusion table.
+    
+    prep_genexpr_ : pd.DataFrame of shape (n_genes, n_samples)
+        Preprocessed gene expression table.
+    
+    splicing_dependency_ : pd.DataFrame of shape (n_exons, n_samples)
+        Predicted splicing dependency using the coefficients of fitted linear models and the preprocessed
+        gene expression and splicing tables.
+        They reflect how excluding a gene isoform affects cell proliferation. A positive splicing 
+        dependency is expected to result in more proliferation upon isoform knockdown (tumor supressor
+        activity) and a negative splicing dependency is expe
+        
+    max_harm_score_ : pd.DataFrame of shape (n_exons, n_samples)
+        Maximum harm score computed by multiplying splicing dependencies with the change in exon inclusion
+        that would harm the cells the most that is, total inclusion with positive splicing dependencies, or
+        total exclusion with negative splicing dependencies.
+
+    Examples
+    --------
+    .. code-block:: python
+        
+        from target_spotter import SplicingDependency
+        
+    """
+    
     def __init__(
         self, normalize_counts=False, log_transform=False, n_iterations=100, n_jobs=None
     ):
@@ -129,8 +198,70 @@ class SplicingDependency:
 
     def fit(self, gene_dependency, splicing, genexpr, isoform_stats=None, mapping=None):
         """
-        if isoform_stats is None. We compute them from data.
+        Fit an ensemble of linear models associating gene expression and exon inclusion to Demeter2 
+        gene dependencies and allows making predictions. Precisely:
+            
+            $$GeneDependecy = 1 + PSI + TPM$$
+            
+        For each model it performs a LR test of its predictive power with or without the PSI term, and 
+        computes the Pearson correlation of its predicitons on the test set.
+
+        Parameters
+        ----------
+        gene_dependency : pd.DataFrame of shape (n_genes, n_samples)
+            Demeter2 gene dependencies.
+            
+        splicing : pd.DataFrame of shape (n_exons, n_samples)
+            Exon inclusion table obtained with `vast-tools`.
+            
+        genexpr : pd.DataFrame of shape (n_genes, n_samples)
+            Gene expression table obtained with `vast-tools`. By default, it is considered to be log-transformed
+            TPMs. Set log_transform=True if this is the output from vast-tools.
+        
+        isoform_stats : pd.DataFrame of shape (n_exons, 11)
+            Computed with `target_spotter.make_isoform_stats` function. If isoform_stats is None,
+            we compute them from input data.
+            
+        mapping : pd.DataFrame of shape (n_exons, 3)
+            Table of mapping VastDB exon identifiers to gene ENSEMBL id and gene symbols.
+
+        Attributes
+        ----------
+        gene_dependency_ : pd.DataFrame of shape (n_genes, n_samples)
+            Inputed Demeter2 gene dependencies.
+            
+        splicing_ : pd.DataFrame of shape (n_exons, n_samples)
+            Inputed exon inclusion table.
+            
+        genexpr_ : pd.DataFrame of shape (n_genes, n_samples)
+            Inputed gene expression table.
+        
+        isoform_stats_ : pd.DataFrame of shape (n_exons, 11)
+            Inputed or computed isoform stats.
+            
+        mapping_ : pd.DataFrame of shape (n_exons, 3)
+            Table of mapping VastDB exon identifiers to gene ENSEMBL id and gene symbols.
+            
+        summaries_ : pd.DataFrame of shape (n_exons, 46)
+            Exon-level summary statistics of the training.
+            
+        coefs_genexpr_ : pd.DataFrame of shape (n_exons, n_iterations)
+            Fitted coefficients for gene expression term across training iterations.
+
+        coefs_intercept_ : pd.DataFrame of shape (n_exons, n_iterations)
+            Fitted coefficients for intercept term across training iterations.
+
+        coefs_splicing_ : pd.DataFrame of shape (n_exons, n_iterations)
+            Fitted coefficients for exon inclusion term across training iterations.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            from target_spotter import SplicingDependency
+
         """
+
         self.gene_dependency_ = gene_dependency
         self.splicing_ = splicing
         self.genexpr_ = genexpr
@@ -252,6 +383,47 @@ class SplicingDependency:
         coefs_genexpr=None,
         coefs_intercept=None,
     ):
+        """
+        Predicts splicing dependencies for each exon in `splicing` table and corresponding `genexpr` table whose fitted coefficients 
+        are found in `coefs_*`. It follows this linear model:
+        
+            $$SplicingDependency = coef_intercept + coef_splicing*PSI + coef_genexpr*TPM$$
+        
+        Note that models were fitted with log-transformed TPMs. Make sure to select the appropriate class options: `log_transform`=True 
+        if you are providing TPMs or, set `normalize_counts`=True if you are providing raw gene counts.
+        
+        Parameters
+        ----------
+        splicing
+        genexpr
+        isoform_stats
+        coefs_splicing
+        coefs_genexpr
+        coefs_intercept
+        
+        Attributes
+        ----------
+        splicing_
+        genexpr_
+        isoform_stats_
+        coefs_splicing_
+        coefs_genexpr_
+        coefs_intercept_
+        splicing_dependency_
+        max_harm_score_
+        
+        Returns
+        -------
+        splicing_dependency_["mean"]
+        max_harm_scores_["mean"]
+        
+        Examples
+        --------
+        .. code-block:: python
+
+            from target_spotter import SplicingDependency
+
+        """
         # prepare
         ## save inputs as attributes
         self.splicing_ = splicing
