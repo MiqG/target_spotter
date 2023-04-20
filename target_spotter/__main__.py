@@ -7,11 +7,10 @@
 import pandas as pd
 import os
 import argparse
-import defaults, SplicingDependency, OneSampleDiff, DrugAssociation
+import defaults, SplicingDependency, DrugAssociation
 
 MAPPING_FILE = defaults.MAPPING_FILE
 FITTED_SPLDEP_DIR = defaults.FITTED_SPLDEP_DIR
-FITTED_ONEDIFF_DIR = defaults.FITTED_ONEDIFF_DIR
 FITTED_DRUGASSOC_DIR = defaults.FITTED_DRUGASSOC_DIR
 
 ##### FUNCTIONS #####
@@ -33,52 +32,170 @@ def parse_args():
         required=True,
         help="Tab-separated file of gene-level dependencies. We assume the first column is the index.",
     )
-    fit_parser.add_argument("--splicing_file", type=str, required=True,
+    fit_parser.add_argument(
+        "--splicing_file",
+        type=str,
+        required=True,
         help="Tab-separated file of exon inclusion PSIs. We assume the first column is the index in VastDB format.",
-                           )
-    fit_parser.add_argument("--genexpr_file", type=str, required=True,
+    )
+    fit_parser.add_argument(
+        "--genexpr_file",
+        type=str,
+        required=True,
         help="Tab-separated file of gene expression TPMs, log2(TPMs+1), or raw counts. We assume the first column is the index in ENSEMBL format and that inputs are in log2(TPMs+1).",
-                           )
-    fit_parser.add_argument("--isoform_stats_file", type=str, default=None, help="Tab-separated file generated running `target_spotter.make_isoform_stats`. If no file is given we compute them directly from splicing and genexpr files.")
-    fit_parser.add_argument("--mapping_file", type=str, default=MAPPING_FILE, help="Tab-separated file mapping VastDB splicing event identifiers ('EVENT' column) to their corresponding ENSEMBL gene identifier ('ENSEMBL' column).")
-    fit_parser.add_argument("--output_dir", type=str, default=FITTED_SPLDEP_DIR, help="Path to the output directory.")
-    fit_parser.add_argument("--normalize_counts", action="store_true", help="If your 'genexpr_file' contains raw gene expression counts, add this argument so we will normalize and log transform these counts.")
-    fit_parser.add_argument("--log_transform", action="store_true", help="If your 'genexpr_file' contains TPM not log-transformed, add this flag so we will log-transform the TPMs.")
-    fit_parser.add_argument("--n_iterations", type=int, default=100, help="Our fitting pipeline splits the data into training and test set 'n_iterations' times to obtain the distribution of coefficients.")
-    fit_parser.add_argument("--n_jobs", type=int, default=1, help="Number of threads to use.")
+    )
+    fit_parser.add_argument(
+        "--isoform_stats_file",
+        type=str,
+        default=None,
+        help="Tab-separated file generated running `target_spotter.make_isoform_stats`. If no file is given we compute them directly from splicing and genexpr files.",
+    )
+    fit_parser.add_argument(
+        "--mapping_file",
+        type=str,
+        default=MAPPING_FILE,
+        help="Tab-separated file mapping VastDB splicing event identifiers ('EVENT' column) to their corresponding ENSEMBL gene identifier ('ENSEMBL' column).",
+    )
+    fit_parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=FITTED_SPLDEP_DIR,
+        help="Path to the output directory.",
+    )
+    fit_parser.add_argument(
+        "--normalize_counts",
+        action="store_true",
+        help="If your 'genexpr_file' contains raw gene expression counts, add this argument so we will normalize and log transform these counts.",
+    )
+    fit_parser.add_argument(
+        "--log_transform",
+        action="store_true",
+        help="If your 'genexpr_file' contains TPM not log-transformed, add this flag so we will log-transform the TPMs.",
+    )
+    fit_parser.add_argument(
+        "--n_iterations",
+        type=int,
+        default=100,
+        help="Our fitting pipeline splits the data into training and test set 'n_iterations' times to obtain the distribution of coefficients.",
+    )
+    fit_parser.add_argument(
+        "--n_jobs", type=int, default=1, help="Number of threads to use."
+    )
 
     ## target_spotter spldep_predict
     pred_parser = subparser.add_parser(
         "spldep_predict", help="estimate splicing dependency."
     )
-    pred_parser.add_argument("--splicing_file", type=str, required=True, help="Tab-separated file of exon inclusion PSIs. We assume the first column is the index in VastDB format.")
-    pred_parser.add_argument("--genexpr_file", type=str, required=True, help="Tab-separated file of gene expression TPMs, log2(TPMs+1), or raw counts. We assume the first column is the index in ENSEMBL format and that inputs are in log2(TPMs+1).")
-    pred_parser.add_argument("--isoform_stats_file", type=str, default=None, help="Tab-separated file generated running `target_spotter.make_isoform_stats`. If no file is given we retrieve `isoform_stats` used during training.")
-    pred_parser.add_argument("--coefs_splicing_file", type=str, default=None, help="Splicing coefficients from our linear models outputted during training.")
-    pred_parser.add_argument("--coefs_genexpr_file", type=str, default=None, help="Gene expression coefficients from our linear models outputted during training.")
-    pred_parser.add_argument("--coefs_intercept_file", type=str, default=None, "Intercept coefficients from our linear models outputted during training.")
-    pred_parser.add_argument("--output_dir", type=str, default="splicing_dependency", help="Path to the output directory.")
-    pred_parser.add_argument("--normalize_counts", action="store_true", help="If your 'genexpr_file' contains raw gene expression counts, add this argument so we will normalize and log transform these counts.")
-    pred_parser.add_argument("--log_transform", action="store_true", help="If your 'genexpr_file' contains TPM not log-transformed, add this flag so we will log-transform the TPMs.")
-    pred_parser.add_argument("--n_jobs", type=int, default=1, help="Number of threads to use.")
+    pred_parser.add_argument(
+        "--splicing_file",
+        type=str,
+        required=True,
+        help="Tab-separated file of exon inclusion PSIs. We assume the first column is the index in VastDB format.",
+    )
+    pred_parser.add_argument(
+        "--genexpr_file",
+        type=str,
+        required=True,
+        help="Tab-separated file of gene expression TPMs, log2(TPMs+1), or raw counts. We assume the first column is the index in ENSEMBL format and that inputs are in log2(TPMs+1).",
+    )
+    pred_parser.add_argument(
+        "--isoform_stats_file",
+        type=str,
+        default=None,
+        help="Tab-separated file generated running `target_spotter.make_isoform_stats`. If no file is given we retrieve `isoform_stats` used during training.",
+    )
+    pred_parser.add_argument(
+        "--coefs_splicing_file",
+        type=str,
+        default=None,
+        help="Splicing coefficients from our linear models outputted during training.",
+    )
+    pred_parser.add_argument(
+        "--coefs_genexpr_file",
+        type=str,
+        default=None,
+        help="Gene expression coefficients from our linear models outputted during training.",
+    )
+    pred_parser.add_argument(
+        "--coefs_intercept_file",
+        type=str,
+        default=None,
+        help="Intercept coefficients from our linear models outputted during training.",
+    )
+    pred_parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="splicing_dependency",
+        help="Path to the output directory.",
+    )
+    pred_parser.add_argument(
+        "--normalize_counts",
+        action="store_true",
+        help="If your 'genexpr_file' contains raw gene expression counts, add this argument so we will normalize and log transform these counts.",
+    )
+    pred_parser.add_argument(
+        "--log_transform",
+        action="store_true",
+        help="If your 'genexpr_file' contains TPM not log-transformed, add this flag so we will log-transform the TPMs.",
+    )
+    pred_parser.add_argument(
+        "--n_jobs", type=int, default=1, help="Number of threads to use."
+    )
 
     ## target_spotter drugassoc_fit
     fit_parser = subparser.add_parser(
         "drugassoc_fit", help="estimate splicing dependency."
     )
-    fit_parser.add_argument("--drug_response_file", type=str, required=True, help="Tab-separated file containing drug sensitivity scores for across drugs and cell lines in long-format.")
-    fit_parser.add_argument("--splicing_dependency_file", type=str, required=True, help="Tab-separated file predicted splicing dependencies across samples (columns) and exons (rows) using fitted splicing dependency models.")
-    fit_parser.add_argument("--growth_rates_file", type=str, default=None, help="Tab-separated file with growth rates for each sample.")
-    fit_parser.add_argument("--mapping_file", type=str, default=MAPPING_FILE, help="Tab-separated file mapping VastDB splicing event identifiers ('EVENT' column) to their corresponding ENSEMBL gene identifier ('ENSEMBL' column).")
-    fit_parser.add_argument("--selected_models_file", type=str, default=None, help="List of selected cancer-driver exons as a .txt file.")
-    fit_parser.add_argument("--output_dir", type=str, default=FITTED_DRUGASSOC_DIR, help="Path to the output directory.")
-    fit_parser.add_argument("--n_jobs", type=int, default=1, help="Number of threads to use.")
+    fit_parser.add_argument(
+        "--drug_response_file",
+        type=str,
+        required=True,
+        help="Tab-separated file containing drug sensitivity scores for across drugs and cell lines in long-format.",
+    )
+    fit_parser.add_argument(
+        "--splicing_dependency_file",
+        type=str,
+        required=True,
+        help="Tab-separated file predicted splicing dependencies across samples (columns) and exons (rows) using fitted splicing dependency models.",
+    )
+    fit_parser.add_argument(
+        "--growth_rates_file",
+        type=str,
+        default=None,
+        help="Tab-separated file with growth rates for each sample.",
+    )
+    fit_parser.add_argument(
+        "--mapping_file",
+        type=str,
+        default=MAPPING_FILE,
+        help="Tab-separated file mapping VastDB splicing event identifiers ('EVENT' column) to their corresponding ENSEMBL gene identifier ('ENSEMBL' column).",
+    )
+    fit_parser.add_argument(
+        "--selected_models_file",
+        type=str,
+        default=None,
+        help="List of selected cancer-driver exons as a .txt file.",
+    )
+    fit_parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=FITTED_DRUGASSOC_DIR,
+        help="Path to the output directory.",
+    )
+    fit_parser.add_argument(
+        "--n_jobs", type=int, default=1, help="Number of threads to use."
+    )
 
     ## target_spotter drugassoc_predict
     pred_parser = subparser.add_parser(
         "drugassoc_predict", help="estimate drug response."
     )
-    pred_parser.add_argument("--splicing_dependency_file", type=str, required=True, help="Tab-separated file predicted splicing dependencies across samples (columns) and exons (rows) using fitted splicing dependency models.")
+    pred_parser.add_argument(
+        "--splicing_dependency_file",
+        type=str,
+        required=True,
+        help="Tab-separated file predicted splicing dependencies across samples (columns) and exons (rows) using fitted splicing dependency models.",
+    )
     pred_parser.add_argument("--growth_rates_file", type=str, default=None)
     pred_parser.add_argument("--model_summaries_file", type=str, default=None)
     pred_parser.add_argument("--fitted_growth_rates_file", type=str, default=None)

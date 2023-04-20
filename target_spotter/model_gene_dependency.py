@@ -149,7 +149,7 @@ def fit_model(x_splicing, x_genexpr, y_gene_dependency, n_iterations, method):
     is_nan = X.isnull().any(1) | y.isnull()
     X = X.loc[~is_nan].copy()
     y = y[~is_nan].copy()
-
+    
     try:
         # standardize features
         X["intercept"] = 1.0
@@ -265,7 +265,7 @@ def fit_models(gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs
     coefs_event = pd.DataFrame(coefs_event)
     coefs_gene = pd.DataFrame(coefs_gene)
     coefs_intercept = pd.DataFrame(coefs_intercept)
-
+    
     # add FDR correction to model summaries
     summaries["lr_padj"] = np.nan
     idx = ~summaries["lr_pvalue"].isnull()

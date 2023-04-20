@@ -187,7 +187,9 @@ class SplicingDependency:
             .drop_duplicates()
             .set_index("ENSEMBL")["gene_std"]
         )
-        genexpr = (genexpr - genexpr_mean) / genexpr_std
+        gene_mean = genexpr_mean[genexpr.index].values.reshape(-1, 1)
+        gene_std = genexpr_std[genexpr.index].values.reshape(-1, 1)
+        genexpr = (genexpr - gene_mean) / gene_std
 
         # update attributes
         self.gene_dependency_ = gene_dependency
@@ -268,7 +270,7 @@ class SplicingDependency:
         # load default mapping
         if self.mapping_ is None:
             self.mapping_ = pd.read_table(MAPPING_FILE)
-
+        
         # run linear models
         (summaries, coefs_splicing, coefs_genexpr, coefs_intercept,) = fit_models(
             self.gene_dependency_,
@@ -535,9 +537,9 @@ class FitFromFiles:
         n_iterations=100,
         n_jobs=None,
     ):
-    """
-    Class to run SplicingDependency.fit from files.
-    """
+        """
+        Class to run SplicingDependency.fit from files.
+        """
         # inputs
         self.gene_dependency_file = gene_dependency_file
         self.splicing_file = splicing_file
@@ -561,9 +563,7 @@ class FitFromFiles:
         mapping = pd.read_table(self.mapping_file)
 
         if self.isoform_stats_file is not None:
-            isoform_stats = pd.read_table(self.isoform_stats_file).set_index(
-                ["EVENT", "ENSEMBL"]
-            )
+            isoform_stats = pd.read_table(self.isoform_stats_file)
         else:
             isoform_stats = None
 
@@ -637,9 +637,9 @@ class PredictFromFiles:
         log_transform=False,
         n_jobs=None,
     ):
-    """
-    Class to run SplicingDependency.predict from files.
-    """
+        """
+        Class to run SplicingDependency.predict from files.
+        """
         # inputs
         self.splicing_file = splicing_file
         self.genexpr_file = genexpr_file
