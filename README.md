@@ -211,7 +211,7 @@ Please, report any issues that you experience through this repository's ["Issues
 - [Luis Serrano](mailto:luis.serrano@crg.eu)
 
 ## License
-`target_spotter` is distributed under a XXXX License (see [LICENSE](https://github.com/MiqG/target_spotter/blob/main/LICENSE)).
+`target_spotter` is distributed under a GNU License (see [LICENSE](https://github.com/MiqG/target_spotter/blob/main/LICENSE)).
 
 ## Citation
 Manuscript under preparation.

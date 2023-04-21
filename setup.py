@@ -19,7 +19,8 @@ setup(
         "tqdm",
         "statsmodels",
         "glimix-core",
-        "numpy-sugar"
+        "numpy-sugar",
+        "sqlalchemy"
     ],
     author="Miquel Anglada Girotto",
     author_email="miquel.anglada@crg.eu",
