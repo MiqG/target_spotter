@@ -35,7 +35,7 @@ class SplicingDependency:
         
     log_transform : bool, default=False
         Whether to log-transform or not the gene expression table. If "True", it will compute
-        log(X+1) to the gene expression table. Set to "True" if you are providing gene expression
+        log2(X+1) to the gene expression table. Set to "True" if you are providing gene expression
         in transcripts per million.
     
     n_iterations : int, default=100
@@ -43,45 +43,6 @@ class SplicingDependency:
         
     n_jobs : int, default=None
         Number of available cores to use. By default it will use all available cores ("None").
-    
-    Attributes
-    ----------
-    coefs_genexpr_ : pd.DataFrame of shape (n_exons, n_iterations)
-        Fitted coefficients for gene expression term across training iterations.
-    
-    coefs_intercept_ : pd.DataFrame of shape (n_exons, n_iterations)
-        Fitted coefficients for intercept term across training iterations.
-    
-    coefs_splicing_ : pd.DataFrame of shape (n_exons, n_iterations)
-        Fitted coefficients for exon inclusion term across training iterations.
-    
-    isoform_stats_ : pd.Dataframe of shape (n_genes, 11)
-        Summary stats for each exon and gene across CCLE cell lines used to normalize the input tables
-        with respect to the dataset used for training.
-
-    splicing_ : pd.DataFrame of shape (n_exons, n_samples)
-        Inputed exon inclusion table.
-    
-    genexpr_ : pd.DataFrame of shape (n_genes, n_samples)
-        Inputed gene expression table.
-
-    prep_splicing_ : pd.DataFrame of shape (n_exons, n_samples)
-        Preprocessed exon inclusion table.
-    
-    prep_genexpr_ : pd.DataFrame of shape (n_genes, n_samples)
-        Preprocessed gene expression table.
-    
-    splicing_dependency_ : pd.DataFrame of shape (n_exons, n_samples)
-        Predicted splicing dependency using the coefficients of fitted linear models and the preprocessed
-        gene expression and splicing tables.
-        They reflect how excluding a gene isoform affects cell proliferation. A positive splicing 
-        dependency is expected to result in more proliferation upon isoform knockdown (tumor supressor
-        activity) and a negative splicing dependency is expe
-        
-    max_harm_score_ : pd.DataFrame of shape (n_exons, n_samples)
-        Maximum harm score computed by multiplying splicing dependencies with the change in exon inclusion
-        that would harm the cells the most that is, total inclusion with positive splicing dependencies, or
-        total exclusion with negative splicing dependencies.
     """
     def __init__(
         self, normalize_counts=False, log_transform=False, n_iterations=100, n_jobs=None
@@ -209,7 +170,7 @@ class SplicingDependency:
             we compute them from input data.
             
         mapping : pd.DataFrame of shape (n_exons, 3), default=None
-            Table of mapping VastDB exon identifiers to gene ENSEMBL id and gene symbols.
+            Table of mapping VastDB exon identifiers to gene ENSEMBL id and gene symbols with respectively named columns as "EVENT", "ENSEMBL", "GENE". If mapping is None, we use our own mapping.
 
         Attributes
         ----------

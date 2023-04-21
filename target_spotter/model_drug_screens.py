@@ -201,7 +201,6 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
         )
         
     # update
-    summary["ID"] = "" ###########
     summary["ID"] = y_drug.name
     summary["EVENT"] = x_spldep.name
     summary["ENSEMBL"] = ensembl
