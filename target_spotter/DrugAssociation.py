@@ -2,9 +2,6 @@
 # Author: Miquel Anglada Girotto
 # Contact: miquel [dot] anglada [at] crg [dot] eu
 #
-# Script purpose
-# --------------
-#
 
 import os
 import pandas as pd
@@ -21,13 +18,39 @@ FITTED_GROWTH_RATES_FILES = defaults.FITTED_GROWTH_RATES_FILES
 FITTED_SPLDEP_FILES = defaults.FITTED_SPLDEP_FILES
 SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 
-#### FUNCTIONS ####
+##### FUNCTIONS #####
 class DrugAssociation:
+    """
+
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+
+    """
     def __init__(self, n_jobs=None):
         # parameters
         self.n_jobs = n_jobs
 
     def fit(self, drug_response, splicing_dependency, growth_rates=None, mapping=None):
+        """
+        
+        Parameters
+        ----------
+        
+        Attributes
+        ----------
+        
+        Returns
+        -------
+            
+        Examples
+        --------
+        .. code-block:: python
+
+            from target_spotter import 
+        """
         # prepare
         ## load default mapping
         if growth_rates is None:
@@ -135,6 +158,23 @@ class DrugAssociation:
         fitted_spldep=None,
         dataset="GDSC1"
     ):
+        """
+        
+        Parameters
+        ----------
+        
+        Attributes
+        ----------
+        
+        Returns
+        -------
+            
+        Examples
+        --------
+        .. code-block:: python
+
+            from target_spotter import 
+        """
         # prepare
         ## save inputs as attributes
         self.splicing_dependency_ = splicing_dependency
@@ -184,6 +224,9 @@ class DrugAssociation:
 
 
 class FitFromFiles:
+    """
+    Class to run DrugAssociation.fit from files.
+    """
     def __init__(
         self,
         drug_response_file,
@@ -194,7 +237,6 @@ class FitFromFiles:
         output_dir="fitted_drug_associations",
         n_jobs=None,
     ):
-
         # inputs
         self.splicing_dependency_file = splicing_dependency_file
         self.drug_response_file = drug_response_file
@@ -293,6 +335,9 @@ class FitFromFiles:
 
 
 class PredictFromFiles:
+    """
+    Class to run DrugAssociation.predict from files.
+    """
     def __init__(
         self,
         splicing_dependency_file,

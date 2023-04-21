@@ -1,3 +1,8 @@
+#
+# Author: Miquel Anglada Girotto
+# Contact: miquel [dot] anglada [at] crg [dot] eu
+#
+
 import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

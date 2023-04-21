@@ -2,8 +2,6 @@
 # Author: Miquel Anglada Girotto
 # Contact: miquel [dot] anglada [at] crg [dot] eu
 #
-# Script purpose
-# --------------
 
 import os
 import pandas as pd
@@ -14,15 +12,6 @@ import defaults
 SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 MAPPING_FILE = defaults.MAPPING_FILE
 OUTPUT_DIR = defaults.REFERENCES_DIR
-
-"""
-Development
------------
-splicing_file = os.path.join(defaults.PREP_DIR,'event_psi','CCLE-EX.tsv.gz')
-genexpr_file = os.path.join(defaults.PREP_DIR,'genexpr_tpm','CCLE.tsv.gz')
-mapping_file = os.path.join(defaults.REFERENCES_DIR,'mapping.tsv.gz')
-output_dir = OUTPUT_DIR
-"""
 
 ##### FUNCTIONS #####
 def load_data(splicing_file, genexpr_file, mapping_file):

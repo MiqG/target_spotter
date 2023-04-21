@@ -2,14 +2,6 @@
 # Author: Miquel Anglada Girotto
 # Contact: miquel [dot] anglada [at] crg [dot] eu
 #
-# Script purpose
-# --------------
-# Compute splicing dependency using the parameters from the fitted linear
-# models to predict gene dependency from splicing PSI and gene expression
-# log2(TPM+1)
-#
-# gene_dependency = intercept + psi + genexpr + psi*genexpr
-# splicing_dependency = intercept + psi + psi*genexprs
 
 import numpy as np
 import pandas as pd
@@ -28,7 +20,7 @@ COEFS_GENEXPR_FILE = defaults.COEFS_GENEXPR_FILE
 COEFS_INTERCEPT_FILE = defaults.COEFS_INTERCEPT_FILE
 SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 
-#### FUNCTIONS ####
+##### FUNCTIONS #####
 class SplicingDependency:
     r"""
     Class to perform splicing dependency analysis. It uses a fitted ensemble of linear models associating 
@@ -90,15 +82,7 @@ class SplicingDependency:
         Maximum harm score computed by multiplying splicing dependencies with the change in exon inclusion
         that would harm the cells the most that is, total inclusion with positive splicing dependencies, or
         total exclusion with negative splicing dependencies.
-
-    Examples
-    --------
-    .. code-block:: python
-        
-        from target_spotter import SplicingDependency
-        
     """
-
     def __init__(
         self, normalize_counts=False, log_transform=False, n_iterations=100, n_jobs=None
     ):
@@ -524,6 +508,9 @@ class SplicingDependency:
 
 
 class FitFromFiles:
+    """
+    Class to run SplicingDependency.fit from files.
+    """
     def __init__(
         self,
         gene_dependency_file,
@@ -537,9 +524,6 @@ class FitFromFiles:
         n_iterations=100,
         n_jobs=None,
     ):
-        """
-        Class to run SplicingDependency.fit from files.
-        """
         # inputs
         self.gene_dependency_file = gene_dependency_file
         self.splicing_file = splicing_file
@@ -624,6 +608,9 @@ class FitFromFiles:
 
 
 class PredictFromFiles:
+    """
+    Class to run SplicingDependency.predict from files.
+    """
     def __init__(
         self,
         splicing_file,
@@ -637,9 +624,6 @@ class PredictFromFiles:
         log_transform=False,
         n_jobs=None,
     ):
-        """
-        Class to run SplicingDependency.predict from files.
-        """
         # inputs
         self.splicing_file = splicing_file
         self.genexpr_file = genexpr_file

@@ -1,7 +1,6 @@
-# Contact: miquel [dot] anglada [at] crg [dot] eu
 #
-# Script purpose
-# --------------
+# Author: Miquel Anglada Girotto
+# Contact: miquel [dot] anglada [at] crg [dot] eu
 #
 
 import pandas as pd

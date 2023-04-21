@@ -1,11 +1,6 @@
 #
 # Author: Miquel Anglada Girotto
-# Contact: miquelangladagirotto [at] gmail [dot] com
-# Last Update: 2021-02-09
-#
-# Script purpose
-# --------------
-#
+# Contact: miquel [dot] anglada [at] crg [dot] eu
 #
 
 import pandas as pd
@@ -20,32 +15,6 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 from glimix_core.lmm import LMM
 from numpy_sugar.linalg import economic_qs
-
-"""
-import os
-ROOT = '~/repositories/target_spotter/'
-model_summaries_file = os.path.join(ROOT,'data','fitted','drug_association','model_summaries.tsv.gz')
-fitted_spldep_file = os.path.join(ROOT,'data','fitted','drug_association','prep_splicing_dependency.tsv.gz')
-fitted_growth_rates_file = os.path.join(ROOT,'data','fitted','drug_association','growth_rates.tsv.gz')
-splicing_dependency_file = os.path.join(ROOT,'workflows','splicing_dependency','mean.tsv.gz')
-
-model_summaries = pd.read_table(model_summaries_file)
-splicing_dependency = pd.read_table(splicing_dependency_file, index_col=0).iloc[:,:3]
-splicing_dependency.columns = ['A','B','C']
-fitted_spldep = pd.read_table(fitted_spldep_file, index_col=0)
-fitted_growth_rates = pd.read_table(fitted_growth_rates_file, index_col=0)
-
-common_samples = set(fitted_growth_rates.index).intersection(fitted_spldep.columns)
-common_events = set(fitted_spldep.index).intersection(splicing_dependency.index).intersection(model_summaries["EVENT"])
-splicing_dependency = splicing_dependency.loc[common_events]
-fitted_spldep = fitted_spldep.loc[common_events, common_samples]
-fitted_growth_rates = fitted_growth_rates.loc[common_samples]
-model_summaries = model_summaries.loc[model_summaries["EVENT"].isin(common_events)]
-
-# compute growth_rates
-growth_rates = infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep)
-
-"""
 
 ##### FUNCTIONS #####
 def infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep):

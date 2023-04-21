@@ -2,15 +2,6 @@
 # Author: Miquel Anglada Girotto
 # Contact: miquel [dot] anglada [at] crg [dot] eu
 #
-# Script purpose
-# --------------
-# Compute splicing dependency using the parameters from the fitted linear
-# models to predict gene dependency from splicing PSI and gene expression
-# log2(TPM+1)
-#
-# gene_dependency = intercept + psi + genexpr + psi*genexpr
-# splicing_dependency = intercept + psi + psi*genexprs
-
 
 import os
 import defaults

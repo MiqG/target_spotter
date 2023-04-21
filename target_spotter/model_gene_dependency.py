@@ -1,12 +1,6 @@
 #
 # Author: Miquel Anglada Girotto
-# Contact: miquelangladagirotto [at] gmail [dot] com
-# Last Update: 2021-02-09
-#
-# Script purpose
-# --------------
-# Create a linear model to compute the association between exon splicing and
-# cell fitness independently of gene expression.
+# Contact: miquel [dot] anglada [at] crg [dot] eu
 #
 
 import os
@@ -18,26 +12,10 @@ from sklearn.model_selection import train_test_split
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-
 # default variables
-# (Not to use random seed) RANDOM_SEED = 1234
 METHOD = "OLS"
 TEST_SIZE = 0.15
 SAVE_PARAMS = {"sep":"\t", "compression":"gzip", "index":False}
-
-"""
-Development
------------
-ROOT = '~/projects/publication_splicing_dependency'
-RAW_DIR = os.path.join(ROOT,'data','raw')
-PREP_DIR = os.path.join(ROOT,'data','prep')
-splicing_file = os.path.join(PREP_DIR,'event_splicing','CCLE-EX.tsv.gz')
-genexpr_file = os.path.join(PREP_DIR,'genexpr_tpm','CCLE.tsv.gz')
-gene_dependency_file = os.path.join(PREP_DIR,'demeter2','CCLE.tsv.gz')
-mapping_file = os.path.join(RAW_DIR,'VastDB','event_mapping-Hs2.tsv.gz')
-n_jobs=10
-n_iterations=2
-"""
 
 ##### FUNCTIONS #####
 def get_summary_stats(df, col_oi):
@@ -57,7 +35,7 @@ def fit_olsmodel(y, X, n_iterations):
     summaries = []
     for i in range(n_iterations):
         # split data
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SIZE)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SIZE, random_state=i)
 
         # fit linear model to training data
         model = sm.OLS(y_train, X_train).fit()
