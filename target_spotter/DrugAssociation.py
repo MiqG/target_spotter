@@ -28,6 +28,7 @@ class DrugAssociation:
     n_jobs : int, default=None
         Number of available cores to use. By default it will use all available cores ("None").
     """
+
     def __init__(self, n_jobs=None):
         # parameters
         self.n_jobs = n_jobs
@@ -148,19 +149,21 @@ class DrugAssociation:
         for drug_id, drug_df in full_est.groupby(["ID"]):
             # prepare weights for weighted average
             # higher pearson, higher contribution
-            weights = prep_model_summaries.loc[prep_model_summaries["ID"]==drug_id]
-            weights = np.clip(weights.set_index("EVENT")["pearson_correlation"],0,1)
+            weights = prep_model_summaries.loc[prep_model_summaries["ID"] == drug_id]
+            weights = np.clip(weights.set_index("EVENT")["pearson_correlation"], 0, 1)
             weights = weights / weights.sum()
-            
+
             # get estimations by all event
-            m = drug_df.set_index("EVENT").loc[weights.index,samples].fillna(0).values
-            w = weights.fillna(0).values.reshape(-1,1)
+            m = drug_df.set_index("EVENT").loc[weights.index, samples].fillna(0).values
+            w = weights.fillna(0).values.reshape(-1, 1)
             ## (n. events x n.samples)^T dotprod. (n. events x 1) = (n.samples x 1)
-            drug_est = np.dot(m.T,w)
-            drug_est = pd.DataFrame({"ID": drug_id, "sample": samples, "predicted_ic50": drug_est.ravel()})
+            drug_est = np.dot(m.T, w)
+            drug_est = pd.DataFrame(
+                {"ID": drug_id, "sample": samples, "predicted_ic50": drug_est.ravel()}
+            )
             drug_ests.append(drug_est)
         drug_ests = pd.concat(drug_ests)
-        
+
         return drug_ests, full_est
 
     def predict(
@@ -170,7 +173,7 @@ class DrugAssociation:
         model_summaries=None,
         fitted_growth_rates=None,
         fitted_spldep=None,
-        dataset="GDSC1"
+        dataset="GDSC1",
     ):
         """
         Parameters
@@ -280,14 +283,16 @@ class DrugAssociation:
                     FITTED_GROWTH_RATES_FILES[self.dataset_], index_col=0
                 )
             if self.fitted_spldep_ is None:
-                self.fitted_spldep_ = pd.read_table(FITTED_SPLDEP_FILES[self.dataset_], index_col=0)
+                self.fitted_spldep_ = pd.read_table(
+                    FITTED_SPLDEP_FILES[self.dataset_], index_col=0
+                )
 
             self.growth_rates_ = infer_growth_rates(
                 self.splicing_dependency_,
                 self.fitted_growth_rates_,
                 self.fitted_spldep_,
             )
-        
+
         ## preprocessing inputs for prediction
         print("Preprocessing inputs...")
         self._preprocess()
@@ -299,10 +304,10 @@ class DrugAssociation:
             self.prep_growth_rates_,
             self.prep_model_summaries_,
         )
-        
+
         drug_estimates.insert(loc=0, column="dataset", value=self.dataset_)
         full_estimates.insert(loc=0, column="dataset", value=self.dataset_)
-        
+
         self.drug_estimates_ = drug_estimates
         self.full_estimates_ = full_estimates
 
@@ -313,6 +318,7 @@ class FitFromFiles:
     """
     Class to run DrugAssociation.fit from files.
     """
+
     def __init__(
         self,
         drug_response_file,
@@ -424,6 +430,7 @@ class PredictFromFiles:
     """
     Class to run DrugAssociation.predict from files.
     """
+
     def __init__(
         self,
         splicing_dependency_file,
@@ -461,7 +468,9 @@ class PredictFromFiles:
             self.fitted_growth_rates_ = pd.read_table(
                 FITTED_GROWTH_RATES_FILES[self.dataset_], index_col=0
             )
-            self.fitted_spldep_ = pd.read_table(FITTED_SPLDEP_FILES[self.dataset_], index_col=0)
+            self.fitted_spldep_ = pd.read_table(
+                FITTED_SPLDEP_FILES[self.dataset_], index_col=0
+            )
             growth_rates = infer_growth_rates(
                 splicing_dependency, self.fitted_growth_rates_, self.fitted_spldep_
             )
@@ -491,7 +500,9 @@ class PredictFromFiles:
             **SAVE_PARAMS
         )
         full_estimates.to_csv(
-            os.path.join(self.output_dir, "estimated_drug_response_by_drug_and_event.tsv.gz"),
+            os.path.join(
+                self.output_dir, "estimated_drug_response_by_drug_and_event.tsv.gz"
+            ),
             **SAVE_PARAMS
         )
 
@@ -502,7 +513,10 @@ class PredictFromFiles:
         print("Estimating splicing dependencies...")
         estimator = DrugAssociation()
         _ = estimator.predict(
-            self.splicing_dependency_, self.growth_rates_, self.model_summaries_, dataset=self.dataset_
+            self.splicing_dependency_,
+            self.growth_rates_,
+            self.model_summaries_,
+            dataset=self.dataset_,
         )
         print("Saving results to %s ..." % self.output_dir)
         self.save(estimator)

@@ -25,13 +25,13 @@ def infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep):
         .T.add_prefix("fitted_")
         .join(splicing_dependency)
     )
-    
+
     # impute growth rates
     ## create empty dataframe with same index and columns
-    imputed = spldep.copy()  
+    imputed = spldep.copy()
     all_nan = imputed.isnull().all(axis=1)
-    imputed.values[:,:] = np.nan
-    
+    imputed.values[:, :] = np.nan
+
     ## run imputer
     imputer = KNNImputer()
     imputed.values[~all_nan, :] = imputer.fit_transform(spldep.T).T
@@ -43,10 +43,7 @@ def infer_growth_rates(splicing_dependency, fitted_growth_rates, fitted_spldep):
 
 def get_drug_pcs(drug):
     drugmat = drug.pivot_table(
-        index="ID",
-        columns="ARXSPAN_ID",
-        values="IC50_PUBLISHED",
-        aggfunc=np.median,
+        index="ID", columns="ARXSPAN_ID", values="IC50_PUBLISHED", aggfunc=np.median,
     )
     drugmat = np.log(drugmat)
     drugmat.values[~np.isfinite(np.abs(drugmat))] = np.nan
@@ -111,7 +108,7 @@ def fit_limixmodel(y, X, sigma):
 
     # make summary
     summary = {
-        "ID": "", # needed this to avoid a weird transformation of strings to floats.
+        "ID": "",  # needed this to avoid a weird transformation of strings to floats.
         "EVENT": np.nan,
         "ENSEMBL": np.nan,
         "GENE": np.nan,
@@ -199,7 +196,7 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
                 "lr_df",
             ],
         )
-        
+
     # update
     summary["ID"] = y_drug.name
     summary["EVENT"] = x_spldep.name
@@ -210,7 +207,7 @@ def fit_model(y_drug, x_spldep, x_growth_rates, sigma, ensembl, gene, method):
     summary["spldep_std"] = x_spldep.std()
     summary["growth_mean"] = x_growth_rates.mean().values[0]  # PC1
     summary["growth_std"] = x_growth_rates.std().values[0]  # PC1
-    
+
     return summary
 
 
@@ -228,7 +225,7 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
             index=y_drug["ARXSPAN_ID"].values,
             name=drug_oi,
         )
-        
+
         # run against all events
         res = Parallel(n_jobs=n_jobs)(
             delayed(fit_model)(
@@ -248,13 +245,13 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
         res["lr_padj"] = np.nan
         idx = ~res["lr_pvalue"].isnull()
         print(sum(idx))
-        if sum(idx)>0:
+        if sum(idx) > 0:
             res.loc[idx, "lr_padj"] = sm.stats.multipletests(
                 res.loc[idx, "lr_pvalue"], method="fdr_bh"
             )[1]
         else:
             res.loc[idx, "lr_padj"] = np.nan
-            
+
         # save
         results.append(res)
 

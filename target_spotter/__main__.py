@@ -23,7 +23,7 @@ def parse_args():
     # SplicingDependency
     ## target_spotter spldep_fit
     fit_parser = subparser.add_parser(
-        "spldep_fit", help="fit models of splicing dependency."
+        "spldep_fit", help="Fit models of splicing dependency."
     )
     fit_parser.add_argument(
         "--gene_dependency_file",
@@ -83,7 +83,7 @@ def parse_args():
 
     ## target_spotter spldep_predict
     pred_parser = subparser.add_parser(
-        "spldep_predict", help="estimate splicing dependency."
+        "spldep_predict", help="Estimate splicing dependency."
     )
     pred_parser.add_argument(
         "--splicing_file",
@@ -143,7 +143,7 @@ def parse_args():
 
     ## target_spotter drugassoc_fit
     fit_parser = subparser.add_parser(
-        "drugassoc_fit", help="estimate splicing dependency."
+        "drugassoc_fit", help="Regress splicing dependency to drug sensitivity."
     )
     fit_parser.add_argument(
         "--drug_response_file",
@@ -187,20 +187,51 @@ def parse_args():
 
     ## target_spotter drugassoc_predict
     pred_parser = subparser.add_parser(
-        "drugassoc_predict", help="estimate drug response."
+        "drugassoc_predict", help="Estimate drug response."
     )
     pred_parser.add_argument(
         "--splicing_dependency_file",
         type=str,
         required=True,
-        help="Tab-separated file predicted splicing dependencies across samples (columns) and exons (rows) using fitted splicing dependency models.",
+        help="Tab-separated file predicted splicing dependencies across samples (columns) and exons (rows) using fitted splicing dependency models. The first column is used as index; it must contain the names of the exons.",
     )
-    pred_parser.add_argument("--growth_rates_file", type=str, default=None)
-    pred_parser.add_argument("--model_summaries_file", type=str, default=None)
-    pred_parser.add_argument("--fitted_growth_rates_file", type=str, default=None)
-    pred_parser.add_argument("--fitted_spldep_file", type=str, default=None)
-    pred_parser.add_argument("--dataset", type=str, default="GDSC1")
-    pred_parser.add_argument("--output_dir", type=str, default="drug_association")
+    pred_parser.add_argument(
+        "--growth_rates_file",
+        type=str,
+        default=None,
+        help="Tab-separated file with growth rates ('growth_rate' column) across samples in splicing_dependency_file. By default, we infer it from splicing dependencies (recommended).",
+    )
+    pred_parser.add_argument(
+        "--model_summaries_file",
+        type=str,
+        default=None,
+        help="Tab-separated file with model summaries generated when fitting splicing dependencies to drug sensitivity. By default, we use the model summaries from our publication (recommended).",
+    )
+    pred_parser.add_argument(
+        "--fitted_growth_rates_file",
+        type=str,
+        default=None,
+        help="Tab-separated file with growth rates used during fitting. By default, we use the growth rates from our publication (recommended).",
+    )
+    pred_parser.add_argument(
+        "--fitted_spldep_file",
+        type=str,
+        default=None,
+        help="Tab-separated file with splicing dependencies used during fitting. By default, we use the splicing dependencies from our publication (recommended).",
+    )
+    pred_parser.add_argument(
+        "--dataset",
+        type=str,
+        choices={"GDSC1", "GDSC2"},
+        default="GDSC1",
+        help="GDSC dataset to use. These screens use different technologies and were therefore considered separately. This is only relevant if model_summaries_file is not specified as we will use the models fitted in our publication.",
+    )
+    pred_parser.add_argument(
+        "--output_dir",
+        type=str,
+        default="drug_association",
+        help="Path to the output directory.",
+    )
 
     # get arguments
     args = parser.parse_args()

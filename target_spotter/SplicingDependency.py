@@ -44,6 +44,7 @@ class SplicingDependency:
     n_jobs : int, default=None
         Number of available cores to use. By default it will use all available cores ("None").
     """
+
     def __init__(
         self, normalize_counts=False, log_transform=False, n_iterations=100, n_jobs=None
     ):
@@ -215,7 +216,7 @@ class SplicingDependency:
         # load default mapping
         if self.mapping_ is None:
             self.mapping_ = pd.read_table(MAPPING_FILE)
-        
+
         # run linear models
         (summaries, coefs_splicing, coefs_genexpr, coefs_intercept,) = fit_models(
             self.gene_dependency_,
@@ -472,6 +473,7 @@ class FitFromFiles:
     """
     Class to run SplicingDependency.fit from files.
     """
+
     def __init__(
         self,
         gene_dependency_file,
@@ -572,6 +574,7 @@ class PredictFromFiles:
     """
     Class to run SplicingDependency.predict from files.
     """
+
     def __init__(
         self,
         splicing_file,

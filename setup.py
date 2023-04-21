@@ -9,7 +9,7 @@ setup(
     version="0.1.0",
     packages=["target_spotter"],
     python_requires=">=3.8",
-    package_data={"": ["LICENSE", "*.md","*.ipynb","*.yml"]},
+    package_data={"": ["LICENSE", "*.md", "*.ipynb", "*.yml"]},
     install_requires=[
         "numpy",
         "pandas",
@@ -20,7 +20,7 @@ setup(
         "statsmodels",
         "glimix-core",
         "numpy-sugar",
-        "sqlalchemy"
+        "sqlalchemy",
     ],
     author="Miquel Anglada Girotto",
     author_email="miquel.anglada@crg.eu",
@@ -28,5 +28,5 @@ setup(
     url="https://github.com/MiqG/target_spotter",
     project_urls={"Issues": "https://github.com/MiqG/target_spotter/issues"},
     long_description=long_description,
-    long_description_content_type='text/markdown'
+    long_description_content_type="text/markdown",
 )

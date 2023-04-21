@@ -33,13 +33,13 @@ def compute_single_splicing_dependency(
 ):
     samples = x_splicing.index
     event = x_splicing.name
-    
+
     PSI = x_splicing.values.reshape(1, -1)
     TPM = x_genexpr.values.reshape(1, -1)
-    
+
     # compute
     y = b_intercept + b_event * PSI + b_gene * TPM
-    
+
     # summarize
     mean = pd.Series(np.mean(y, axis=0), index=samples, name=event)
     median = pd.Series(np.median(y, axis=0), index=samples, name=event)
@@ -114,7 +114,7 @@ def compute_max_harm_score(splicing, splicing_dependency):
     psi_final.values[splicing_dependency < 0] = 0  # remove onco-events
     psi_final.values[splicing_dependency > 0] = 100  # include tumor-suppressor events
     max_harm = (-1) * (psi_final - splicing) * splicing_dependency
-    
+
     return max_harm
 
 
@@ -127,50 +127,64 @@ def load_examples(dataset="CCLE"):
 
 def save_sql(df, table_name, output_dir):
     # create SQL database
-    url = os.path.join('sqlite:///'+output_dir,table_name+".sql")
+    url = os.path.join("sqlite:///" + output_dir, table_name + ".sql")
     print(url)
     engine = sqlalchemy.create_engine(url, echo=False)
-    df.to_sql(table_name, con=engine, if_exists='replace')
+    df.to_sql(table_name, con=engine, if_exists="replace")
     print("Saved %s" % url)
-    
-            
+
+
 def prep_for_webapp(
     splicing, genexpr, spldep, max_harm, pred_ic50, output_dir="webapp_inputs"
 ):
     # load references
     info_event_gene = pd.read_table(defaults.MAPPING_FILE)
     info_drugs = pd.read_table(defaults.INFO_DRUGS_FILE)
-    
+
     # prepare
     ## PSI
     splicing.index.name = "EVENT"
     splicing = pd.merge(
-            info_event_gene[["EVENT","GENE","ENSEMBL"]], splicing.reset_index(), 
-            how="inner", left_on="EVENT", right_on="EVENT"
-        )
+        info_event_gene[["EVENT", "GENE", "ENSEMBL"]],
+        splicing.reset_index(),
+        how="inner",
+        left_on="EVENT",
+        right_on="EVENT",
+    )
     ## gene expression
     genexpr.index.name = "ENSEMBL"
     genexpr = pd.merge(
-            info_event_gene[["GENE","ENSEMBL"]].drop_duplicates(), genexpr.reset_index(), 
-            how="inner", left_on="ENSEMBL", right_on="ENSEMBL"
-        )
+        info_event_gene[["GENE", "ENSEMBL"]].drop_duplicates(),
+        genexpr.reset_index(),
+        how="inner",
+        left_on="ENSEMBL",
+        right_on="ENSEMBL",
+    )
     ## splicing dependency and maximum harm scores
     spldep.index.name = "EVENT"
     spldep = pd.merge(
-        info_event_gene[["EVENT","GENE","ENSEMBL"]], spldep.reset_index(), 
-        how="inner", left_on="EVENT", right_on="EVENT"
+        info_event_gene[["EVENT", "GENE", "ENSEMBL"]],
+        spldep.reset_index(),
+        how="inner",
+        left_on="EVENT",
+        right_on="EVENT",
     )
     max_harm.index.name = "EVENT"
     max_harm = pd.merge(
-        info_event_gene[["EVENT","GENE","ENSEMBL"]], max_harm.reset_index(), 
-        how="inner", left_on="EVENT", right_on="EVENT"
+        info_event_gene[["EVENT", "GENE", "ENSEMBL"]],
+        max_harm.reset_index(),
+        how="inner",
+        left_on="EVENT",
+        right_on="EVENT",
     )
     ## predicted IC50s
     pred_ic50 = pd.merge(
-        info_drugs[["DRUG_ID","DRUG_NAME","drug_screen","ID"]].drop_duplicates(), pred_ic50, 
-        how="inner", on="ID"
+        info_drugs[["DRUG_ID", "DRUG_NAME", "drug_screen", "ID"]].drop_duplicates(),
+        pred_ic50,
+        how="inner",
+        on="ID",
     )
-    
+
     # save
     ## create webapp directory
     os.makedirs(output_dir, exist_ok=True)

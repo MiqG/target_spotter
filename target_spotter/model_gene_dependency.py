@@ -15,7 +15,7 @@ from tqdm import tqdm
 # default variables
 METHOD = "OLS"
 TEST_SIZE = 0.15
-SAVE_PARAMS = {"sep":"\t", "compression":"gzip", "index":False}
+SAVE_PARAMS = {"sep": "\t", "compression": "gzip", "index": False}
 
 ##### FUNCTIONS #####
 def get_summary_stats(df, col_oi):
@@ -35,7 +35,9 @@ def fit_olsmodel(y, X, n_iterations):
     summaries = []
     for i in range(n_iterations):
         # split data
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SIZE, random_state=i)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=TEST_SIZE, random_state=i
+        )
 
         # fit linear model to training data
         model = sm.OLS(y_train, X_train).fit()
@@ -75,7 +77,7 @@ def fit_olsmodel(y, X, n_iterations):
             "lr_df": lr_df,
         }
         summaries.append(summary_it)
-        
+
     summaries = pd.DataFrame(summaries)
 
     # compute average likelihood-ratio test
@@ -127,7 +129,7 @@ def fit_model(x_splicing, x_genexpr, y_gene_dependency, n_iterations, method):
     is_nan = X.isnull().any(1) | y.isnull()
     X = X.loc[~is_nan].copy()
     y = y[~is_nan].copy()
-    
+
     try:
         # standardize features
         X["intercept"] = 1.0
@@ -215,19 +217,21 @@ def get_coefs(res, coef_oi, size):
     return coefs
 
 
-def fit_models(gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs, method=METHOD):
-    
+def fit_models(
+    gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs, method=METHOD
+):
+
     results = Parallel(n_jobs=n_jobs)(
-            delayed(fit_model)(
-                splicing.loc[event],
-                genexpr.loc[ensembl],
-                gene_dependency.loc[gene],
-                n_iterations,
-                method=method,
-            )
-            for event, ensembl, gene in tqdm(mapping.values)
+        delayed(fit_model)(
+            splicing.loc[event],
+            genexpr.loc[ensembl],
+            gene_dependency.loc[gene],
+            n_iterations,
+            method=method,
         )
-    
+        for event, ensembl, gene in tqdm(mapping.values)
+    )
+
     # split results
     summaries = []
     coefs_event = []
@@ -243,7 +247,7 @@ def fit_models(gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs
     coefs_event = pd.DataFrame(coefs_event)
     coefs_gene = pd.DataFrame(coefs_gene)
     coefs_intercept = pd.DataFrame(coefs_intercept)
-    
+
     # add FDR correction to model summaries
     summaries["lr_padj"] = np.nan
     idx = ~summaries["lr_pvalue"].isnull()

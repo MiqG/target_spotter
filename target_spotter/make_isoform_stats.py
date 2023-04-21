@@ -49,7 +49,7 @@ def make_isoform_stats(splicing, genexpr, mapping):
     events_avail = list(splicing_stats.index)
     to_keep = isoform_stats["EVENT"].isin(events_avail)
     isoform_stats = isoform_stats.loc[to_keep].copy()
-    
+
     return isoform_stats
 
 
@@ -84,7 +84,9 @@ def main():
 
     print("Saving results...")
     isoform_stats = pd.concat(isoform_stats)
-    isoform_stats.to_csv(os.path.join(output_dir, "isoform_stats.tsv.gz"), **SAVE_PARAMS)
+    isoform_stats.to_csv(
+        os.path.join(output_dir, "isoform_stats.tsv.gz"), **SAVE_PARAMS
+    )
 
 
 ##### SCRIPT #####
