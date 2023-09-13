@@ -220,7 +220,7 @@ def get_coefs(res, coef_oi, size):
 def fit_models(
     gene_dependency, splicing, genexpr, mapping, n_iterations, n_jobs, method=METHOD
 ):
-
+    
     results = Parallel(n_jobs=n_jobs)(
         delayed(fit_model)(
             splicing.loc[event],
@@ -251,8 +251,9 @@ def fit_models(
     # add FDR correction to model summaries
     summaries["lr_padj"] = np.nan
     idx = ~summaries["lr_pvalue"].isnull()
-    summaries.loc[idx, "lr_padj"] = sm.stats.multipletests(
-        summaries.loc[idx, "lr_pvalue"], method="fdr_bh"
-    )[1]
-
+    if idx.sum()>1:
+        summaries.loc[idx, "lr_padj"] = sm.stats.multipletests(
+            summaries.loc[idx, "lr_pvalue"], method="fdr_bh"
+        )[1]
+    
     return summaries, coefs_event, coefs_gene, coefs_intercept
