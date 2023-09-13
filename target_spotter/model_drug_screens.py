@@ -237,7 +237,7 @@ def fit_models(drug, spldep, growth_rates, mapping, n_jobs):
                 gene,
                 method="limix",
             )
-            for event, ensembl, gene in tqdm(mapping.values)
+            for event, ensembl, gene in tqdm(mapping[["EVENT","ENSEMBL","GENE"]].values)
         )
         res = pd.DataFrame(res)
 

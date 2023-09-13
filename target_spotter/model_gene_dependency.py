@@ -229,7 +229,7 @@ def fit_models(
             n_iterations,
             method=method,
         )
-        for event, ensembl, gene in tqdm(mapping.values)
+        for event, ensembl, gene in tqdm(mapping[["EVENT","ENSEMBL","GENE"]].values)
     )
 
     # split results
