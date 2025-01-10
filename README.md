@@ -44,7 +44,7 @@ pip install -e .
 ```
 
 ## Usage
-Here's a tutorial on how to [compute splicing dependencies and predict drug sensitivities](https://github.com/CRG-CNAG/target_spotter/blob/main/tutorials/basics.ipynb) from transcriptomic data as input.
+Here's a tutorial on how to [compute splicing dependencies and predict drug sensitivities](https://github.com/MiqG/target_spotter/blob/main/notebooks/tutorial.ipynb) from transcriptomic data as input.
 
 ### inputs obtained running [`vast-tools`](https://github.com/vastgroup/vast-tools)
 To run our predictions you'll need:
